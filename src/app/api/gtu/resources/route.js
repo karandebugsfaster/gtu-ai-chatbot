@@ -1,0 +1,85 @@
+import { NextResponse } from 'next/server';
+import connectDB from '@/lib/db/mongodb';
+import Document from '@/lib/db/models/Document';
+import PYQ from '@/lib/db/models/PYQ';
+
+export async function GET(request) {
+  try {
+    await connectDB();
+
+    const { searchParams } = new URL(request.url);
+    const subjectId = searchParams.get('subjectId');
+
+    if (!subjectId) {
+      return NextResponse.json(
+        { success: false, error: 'Subject ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Fetch all resource types for this subject
+    const [books, notes, references, pyqs] = await Promise.all([
+      Document.find({
+        subject: subjectId,
+        type: 'book',
+        processingStatus: 'completed',
+        isActive: true
+      })
+      .select('title fileDetails metadata downloads views createdAt')
+      .sort({ createdAt: -1 })
+      .lean(),
+
+      Document.find({
+        subject: subjectId,
+        type: 'notes',
+        processingStatus: 'completed',
+        isActive: true
+      })
+      .select('title fileDetails metadata downloads views createdAt')
+      .sort({ createdAt: -1 })
+      .lean(),
+
+      Document.find({
+        subject: subjectId,
+        type: 'reference',
+        processingStatus: 'completed',
+        isActive: true
+      })
+      .select('title fileDetails metadata downloads views createdAt')
+      .sort({ createdAt: -1 })
+      .lean(),
+
+      PYQ.find({
+        subject: subjectId,
+        processingStatus: 'completed',
+        isActive: true
+      })
+      .select('examName academicYear examDate examType totalMarks fileDetails downloads')
+      .sort({ examDate: -1 })
+      .lean()
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      resources: {
+        books,
+        notes,
+        references,
+        pyqs
+      },
+      counts: {
+        books: books.length,
+        notes: notes.length,
+        references: references.length,
+        pyqs: pyqs.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Get resources error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch resources' },
+      { status: 500 }
+    );
+  }
+}
