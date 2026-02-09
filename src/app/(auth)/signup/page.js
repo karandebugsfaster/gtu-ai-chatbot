@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import toast from 'react-hot-toast';
@@ -18,11 +18,27 @@ export default function SignUpPage() {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
+
+  const calculatePasswordStrength = (password) => {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (password.length >= 12) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    return Math.min(strength, 4);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user types
+    
+    if (name === 'password') {
+      setPasswordStrength(calculatePasswordStrength(value));
+    }
+    
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -86,7 +102,7 @@ export default function SignUpPage() {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Account created! Please check your email for OTP.');
+        toast.success('Account created! Check your email for OTP.');
         router.push(`/verify-otp?email=${encodeURIComponent(data.email)}`);
       } else {
         toast.error(data.error || 'Registration failed');
@@ -99,45 +115,51 @@ export default function SignUpPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-md w-full"
-      >
-        {/* Logo/Header */}
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            className="inline-block"
-          >
-            <div className="w-16 h-16 bg-gradient-to-br from-primary-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
-          </motion.div>
-          <h2 className="text-3xl font-bold gradient-text">GTU AI Chatbot</h2>
-          <p className="mt-2 text-gray-600">Create your account to get started</p>
-        </div>
+  const strengthColors = ['#ef4444', '#f59e0b', '#eab308', '#22c55e'];
+  const strengthLabels = ['Weak', 'Fair', 'Good', 'Strong'];
 
-        {/* Form */}
+  return (
+    <div className="min-h-screen flex">
+      {/* Left Side - Form */}
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-white">
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white rounded-2xl shadow-xl p-8"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
+          className="max-w-md w-full space-y-8"
         >
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Logo */}
+          <div>
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, type: 'spring' }}
+              className="flex items-center gap-3 mb-2"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-primary-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+              <h1 className="text-2xl font-bold gradient-text">GTU AI Chatbot</h1>
+            </motion.div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h2>
+            <p className="text-gray-600">Start your academic journey with AI-powered learning</p>
+          </div>
+
+          {/* Form */}
+          <motion.form
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            onSubmit={handleSubmit}
+            className="space-y-5"
+          >
             <Input
               label="Full Name"
               name="name"
               type="text"
-              placeholder="Enter your full name"
+              placeholder="John Doe"
               value={formData.name}
               onChange={handleChange}
               error={errors.name}
@@ -153,7 +175,7 @@ export default function SignUpPage() {
               label="Email Address"
               name="email"
               type="email"
-              placeholder="your.email@example.com"
+              placeholder="john@example.com"
               value={formData.email}
               onChange={handleChange}
               error={errors.email}
@@ -165,21 +187,57 @@ export default function SignUpPage() {
               }
             />
 
-            <Input
-              label="Password"
-              name="password"
-              type="password"
-              placeholder="Create a strong password"
-              value={formData.password}
-              onChange={handleChange}
-              error={errors.password}
-              required
-              icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              }
-            />
+            <div>
+              <Input
+                label="Password"
+                name="password"
+                type="password"
+                placeholder="Create a strong password"
+                value={formData.password}
+                onChange={handleChange}
+                error={errors.password}
+                required
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                }
+              />
+              
+              {/* Password Strength Indicator */}
+              <AnimatePresence>
+                {formData.password && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-2"
+                  >
+                    <div className="flex gap-1.5 mb-1">
+                      {[0, 1, 2, 3].map((index) => (
+                        <div
+                          key={index}
+                          className="h-1.5 flex-1 rounded-full bg-gray-200 overflow-hidden"
+                        >
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{
+                              width: passwordStrength > index ? '100%' : '0%',
+                              backgroundColor: passwordStrength > index ? strengthColors[passwordStrength - 1] : '#e5e7eb'
+                            }}
+                            transition={{ duration: 0.3 }}
+                            className="h-full"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs" style={{ color: strengthColors[passwordStrength - 1] || '#6b7280' }}>
+                      {passwordStrength > 0 ? strengthLabels[passwordStrength - 1] : 'Enter password'}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             <Input
               label="Confirm Password"
@@ -201,26 +259,104 @@ export default function SignUpPage() {
               type="submit"
               fullWidth
               loading={loading}
-              className="mt-6"
+              className="!mt-8"
+              size="lg"
             >
               Create Account
             </Button>
-          </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link href="/signin" className="text-primary-600 hover:text-primary-700 font-medium transition-colors">
-                Sign In
-              </Link>
-            </p>
-          </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Already have an account?{' '}
+                <Link href="/signin" className="text-primary-600 hover:text-primary-700 font-semibold transition-colors">
+                  Sign In
+                </Link>
+              </p>
+            </div>
+          </motion.form>
+
+          {/* Footer */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-center text-xs text-gray-500"
+          >
+            By creating an account, you agree to our{' '}
+            <a href="#" className="underline hover:text-gray-700">Terms</a> and{' '}
+            <a href="#" className="underline hover:text-gray-700">Privacy Policy</a>
+          </motion.p>
         </motion.div>
+      </div>
 
-        {/* Footer */}
-        <p className="mt-6 text-center text-xs text-gray-500">
-          By creating an account, you agree to our Terms of Service and Privacy Policy
-        </p>
+      {/* Right Side - Illustration/Info */}
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6 }}
+        className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary-600 via-purple-600 to-pink-500 relative overflow-hidden"
+      >
+        {/* Animated Background Shapes */}
+        <div className="absolute inset-0">
+          <motion.div
+            animate={{
+              scale: [1, 1.2, 1],
+              rotate: [0, 90, 0],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            className="absolute top-1/4 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl"
+          />
+          <motion.div
+            animate={{
+              scale: [1.2, 1, 1.2],
+              rotate: [90, 0, 90],
+            }}
+            transition={{
+              duration: 15,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl"
+          />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-center px-12 text-white">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <h2 className="text-4xl font-bold mb-6">Welcome to GTU AI Chatbot</h2>
+            <p className="text-lg text-white/90 mb-8">
+              Your intelligent companion for academic excellence. Get instant answers from your course materials.
+            </p>
+
+            <div className="space-y-4">
+              {[
+                { icon: '📚', text: 'Access all your study materials in one place' },
+                { icon: '🤖', text: 'AI-powered answers from uploaded content' },
+                { icon: '📄', text: 'Browse and download previous year papers' },
+                { icon: '✨', text: 'Generate custom question papers instantly' },
+              ].map((feature, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + index * 0.1 }}
+                  className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-lg p-4"
+                >
+                  <span className="text-2xl">{feature.icon}</span>
+                  <span className="text-white/90">{feature.text}</span>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
       </motion.div>
     </div>
   );
