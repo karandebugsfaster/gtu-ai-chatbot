@@ -3,9 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
 import toast from 'react-hot-toast';
 
 export default function SignUpPage() {
@@ -18,27 +15,12 @@ export default function SignUpPage() {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0);
-
-  const calculatePasswordStrength = (password) => {
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (password.length >= 12) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[a-z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^A-Za-z0-9]/.test(password)) strength++;
-    return Math.min(strength, 4);
-  };
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
-    if (name === 'password') {
-      setPasswordStrength(calculatePasswordStrength(value));
-    }
-    
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -63,12 +45,6 @@ export default function SignUpPage() {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
-    } else if (!/[A-Z]/.test(formData.password)) {
-      newErrors.password = 'Password must contain at least one uppercase letter';
-    } else if (!/[a-z]/.test(formData.password)) {
-      newErrors.password = 'Password must contain at least one lowercase letter';
-    } else if (!/[0-9]/.test(formData.password)) {
-      newErrors.password = 'Password must contain at least one number';
     }
 
     if (!formData.confirmPassword) {
@@ -83,7 +59,6 @@ export default function SignUpPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validate()) return;
 
     setLoading(true);
@@ -115,249 +90,200 @@ export default function SignUpPage() {
     }
   };
 
-  const strengthColors = ['#ef4444', '#f59e0b', '#eab308', '#22c55e'];
-  const strengthLabels = ['Weak', 'Fair', 'Good', 'Strong'];
-
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Form */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-white">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6 }}
-          className="max-w-md w-full space-y-8"
-        >
-          {/* Logo */}
-          <div>
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2, type: 'spring' }}
-              className="flex items-center gap-3 mb-2"
-            >
-              <div className="w-12 h-12 bg-gradient-to-br from-primary-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <h1 className="text-2xl font-bold gradient-text">GTU AI Chatbot</h1>
-            </motion.div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h2>
-            <p className="text-gray-600">Start your academic journey with AI-powered learning</p>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #eef2ff 0%, #faf5ff 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+      <div style={{ width: '100%', maxWidth: '28rem' }}>
+        {/* Logo & Header */}
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            width: '4rem', 
+            height: '4rem', 
+            background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', 
+            borderRadius: '1.25rem', 
+            marginBottom: '1rem',
+            boxShadow: '0 10px 25px -5px rgba(79, 70, 229, 0.3)'
+          }}>
+            <svg style={{ width: '2.25rem', height: '2.25rem', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
           </div>
+          <h1 style={{ fontSize: '1.875rem', fontWeight: '700', color: '#111827', marginBottom: '0.5rem' }}>
+            Create Account
+          </h1>
+          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            Start your journey with GTU AI Chatbot
+          </p>
+        </div>
 
-          {/* Form */}
-          <motion.form
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            onSubmit={handleSubmit}
-            className="space-y-5"
-          >
-            <Input
-              label="Full Name"
-              name="name"
-              type="text"
-              placeholder="John Doe"
-              value={formData.name}
-              onChange={handleChange}
-              error={errors.name}
-              required
-              icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              }
-            />
-
-            <Input
-              label="Email Address"
-              name="email"
-              type="email"
-              placeholder="john@example.com"
-              value={formData.email}
-              onChange={handleChange}
-              error={errors.email}
-              required
-              icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              }
-            />
-
+        {/* Form Card */}
+        <div className="card" style={{ padding: '2rem' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Full Name */}
             <div>
-              <Input
-                label="Password"
-                name="password"
-                type="password"
-                placeholder="Create a strong password"
-                value={formData.password}
+              <label htmlFor="name">Full Name</label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                autoComplete="name"
+                value={formData.name}
                 onChange={handleChange}
-                error={errors.password}
-                required
-                icon={
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                }
+                className={errors.name ? 'error' : ''}
+                placeholder="John Doe"
               />
-              
-              {/* Password Strength Indicator */}
-              <AnimatePresence>
-                {formData.password && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-2"
-                  >
-                    <div className="flex gap-1.5 mb-1">
-                      {[0, 1, 2, 3].map((index) => (
-                        <div
-                          key={index}
-                          className="h-1.5 flex-1 rounded-full bg-gray-200 overflow-hidden"
-                        >
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{
-                              width: passwordStrength > index ? '100%' : '0%',
-                              backgroundColor: passwordStrength > index ? strengthColors[passwordStrength - 1] : '#e5e7eb'
-                            }}
-                            transition={{ duration: 0.3 }}
-                            className="h-full"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs" style={{ color: strengthColors[passwordStrength - 1] || '#6b7280' }}>
-                      {passwordStrength > 0 ? strengthLabels[passwordStrength - 1] : 'Enter password'}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {errors.name && (
+                <p style={{ marginTop: '0.375rem', fontSize: '0.75rem', color: '#ef4444' }}>
+                  {errors.name}
+                </p>
+              )}
             </div>
 
-            <Input
-              label="Confirm Password"
-              name="confirmPassword"
-              type="password"
-              placeholder="Re-enter your password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              error={errors.confirmPassword}
-              required
-              icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              }
-            />
-
-            <Button
-              type="submit"
-              fullWidth
-              loading={loading}
-              className="!mt-8"
-              size="lg"
-            >
-              Create Account
-            </Button>
-
-            <div className="text-center">
-              <p className="text-sm text-gray-600">
-                Already have an account?{' '}
-                <Link href="/signin" className="text-primary-600 hover:text-primary-700 font-semibold transition-colors">
-                  Sign In
-                </Link>
-              </p>
+            {/* Email */}
+            <div>
+              <label htmlFor="email">Email Address</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                value={formData.email}
+                onChange={handleChange}
+                className={errors.email ? 'error' : ''}
+                placeholder="you@example.com"
+              />
+              {errors.email && (
+                <p style={{ marginTop: '0.375rem', fontSize: '0.75rem', color: '#ef4444' }}>
+                  {errors.email}
+                </p>
+              )}
             </div>
-          </motion.form>
 
-          {/* Footer */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-center text-xs text-gray-500"
-          >
-            By creating an account, you agree to our{' '}
-            <a href="#" className="underline hover:text-gray-700">Terms</a> and{' '}
-            <a href="#" className="underline hover:text-gray-700">Privacy Policy</a>
-          </motion.p>
-        </motion.div>
-      </div>
-
-      {/* Right Side - Illustration/Info */}
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6 }}
-        className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary-600 via-purple-600 to-pink-500 relative overflow-hidden"
-      >
-        {/* Animated Background Shapes */}
-        <div className="absolute inset-0">
-          <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 90, 0],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-            className="absolute top-1/4 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{
-              scale: [1.2, 1, 1.2],
-              rotate: [90, 0, 90],
-            }}
-            transition={{
-              duration: 15,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-            className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl"
-          />
-        </div>
-
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center px-12 text-white">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <h2 className="text-4xl font-bold mb-6">Welcome to GTU AI Chatbot</h2>
-            <p className="text-lg text-white/90 mb-8">
-              Your intelligent companion for academic excellence. Get instant answers from your course materials.
-            </p>
-
-            <div className="space-y-4">
-              {[
-                { icon: '📚', text: 'Access all your study materials in one place' },
-                { icon: '🤖', text: 'AI-powered answers from uploaded content' },
-                { icon: '📄', text: 'Browse and download previous year papers' },
-                { icon: '✨', text: 'Generate custom question papers instantly' },
-              ].map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + index * 0.1 }}
-                  className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-lg p-4"
+            {/* Password */}
+            <div>
+              <label htmlFor="password">Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={errors.password ? 'error' : ''}
+                  placeholder="••••••••"
+                  style={{ paddingRight: '2.5rem' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ 
+                    position: 'absolute', 
+                    right: '0.75rem', 
+                    top: '50%', 
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    padding: '0.25rem',
+                    color: '#9ca3af'
+                  }}
                 >
-                  <span className="text-2xl">{feature.icon}</span>
-                  <span className="text-white/90">{feature.text}</span>
-                </motion.div>
-              ))}
+                  {showPassword ? (
+                    <svg style={{ width: '1.25rem', height: '1.25rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg style={{ width: '1.25rem', height: '1.25rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {errors.password && (
+                <p style={{ marginTop: '0.375rem', fontSize: '0.75rem', color: '#ef4444' }}>
+                  {errors.password}
+                </p>
+              )}
             </div>
-          </motion.div>
+
+            {/* Confirm Password */}
+            <div>
+              <label htmlFor="confirmPassword">Confirm Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={errors.confirmPassword ? 'error' : ''}
+                  placeholder="••••••••"
+                  style={{ paddingRight: '2.5rem' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{ 
+                    position: 'absolute', 
+                    right: '0.75rem', 
+                    top: '50%', 
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    padding: '0.25rem',
+                    color: '#9ca3af'
+                  }}
+                >
+                  {showConfirmPassword ? (
+                    <svg style={{ width: '1.25rem', height: '1.25rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg style={{ width: '1.25rem', height: '1.25rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <p style={{ marginTop: '0.375rem', fontSize: '0.75rem', color: '#ef4444' }}>
+                  {errors.confirmPassword}
+                </p>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary"
+              style={{ width: '100%', marginTop: '0.5rem' }}
+            >
+              {loading ? 'Creating Account...' : 'Create Account'}
+            </button>
+          </form>
+
+          {/* Sign In Link */}
+          <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem', color: '#6b7280' }}>
+            Already have an account?{' '}
+            <Link href="/signin" style={{ fontWeight: '600', color: '#4f46e5', textDecoration: 'none' }}>
+              Sign In
+            </Link>
+          </p>
         </div>
-      </motion.div>
+
+        {/* Terms */}
+        <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#9ca3af' }}>
+          By creating an account, you agree to our{' '}
+          <a href="#" style={{ textDecoration: 'underline', color: '#9ca3af' }}>Terms</a> and{' '}
+          <a href="#" style={{ textDecoration: 'underline', color: '#9ca3af' }}>Privacy Policy</a>
+        </p>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 
 export default function WelcomeScreen({ onSendMessage, isAuthenticated }) {
@@ -8,135 +7,192 @@ export default function WelcomeScreen({ onSendMessage, isAuthenticated }) {
 
   const suggestions = [
     {
-      icon: '📚',
-      title: 'Explain OSI Model',
+      icon: '🌐',
+      title: 'Explain the OSI model',
       description: 'Learn about networking layers'
     },
     {
       icon: '💻',
-      title: 'What is polymorphism?',
-      description: 'Understand OOP concepts'
+      title: 'What is polymorphism in OOP?',
+      description: 'Understand object-oriented concepts'
     },
     {
       icon: '🔐',
-      title: 'Database normalization',
+      title: 'Explain database normalization',
       description: 'Learn about database design'
     },
     {
       icon: '⚡',
-      title: 'Explain sorting algorithms',
-      description: 'Compare different algorithms'
+      title: 'Compare sorting algorithms',
+      description: 'Understand algorithm efficiency'
     }
   ];
 
   return (
-    <div className="h-full flex items-center justify-center px-4">
-      <div className="max-w-3xl w-full">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            className="inline-block mb-6"
-          >
-            <div className="w-20 h-20 bg-gradient-to-br from-primary-600 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-primary-500/30">
-              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
-          </motion.div>
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      minHeight: 'calc(100vh - 200px)',
+      padding: '2rem 1rem'
+    }}>
+      <div style={{ maxWidth: '56rem', width: '100%' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '4rem',
+            height: '4rem',
+            background: 'linear-gradient(135deg, #6366f1 0%, #9333ea 100%)',
+            borderRadius: '1rem',
+            marginBottom: '1.5rem',
+            boxShadow: '0 10px 25px -5px rgba(99, 102, 241, 0.3)'
+          }}>
+            <svg style={{ width: '2rem', height: '2rem', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
 
-          <motion.h1
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-4xl font-bold mb-3"
-          >
+          <h1 style={{ 
+            fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
+            fontWeight: '700',
+            color: '#111827',
+            marginBottom: '0.75rem',
+            lineHeight: '1.2'
+          }}>
             {isAuthenticated 
-              ? `Hello, ${session?.user?.name?.split(' ')[0] || 'Student'}! 👋`
-              : 'Welcome to GTU AI Chatbot! 👋'
+              ? `Hello, ${session?.user?.name?.split(' ')[0] || 'there'}! 👋`
+              : 'How can I help you today?'
             }
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="text-xl text-gray-600 mb-2"
-          >
-            How can I help you today?
-          </motion.p>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-sm text-gray-500"
-          >
-            {isAuthenticated 
-              ? 'Ask me anything about your course materials'
-              : 'Sign in to get personalized answers from your course materials'
-            }
-          </motion.p>
-        </motion.div>
+          </h1>
+          
+          {!isAuthenticated && (
+            <p style={{ 
+              fontSize: '0.875rem',
+              color: '#6b7280',
+              maxWidth: '32rem',
+              margin: '0 auto'
+            }}>
+              Sign in to save your conversations and access all features
+            </p>
+          )}
+        </div>
 
         {/* Suggestion Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
+        <div style={{ 
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '1rem',
+          marginBottom: '3rem'
+        }}>
           {suggestions.map((suggestion, index) => (
-            <motion.button
+            <button
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 + index * 0.1 }}
               onClick={() => onSendMessage(suggestion.title)}
-              className="group relative bg-white border-2 border-gray-200 rounded-2xl p-5 text-left hover:border-primary-300 hover:shadow-lg transition-all duration-300"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              style={{
+                background: 'white',
+                border: '2px solid #e5e7eb',
+                borderRadius: '1rem',
+                padding: '1.25rem',
+                textAlign: 'left',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#6366f1';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.15)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#e5e7eb';
+                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.05)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
             >
-              <div className="flex items-start gap-3">
-                <div className="text-3xl">{suggestion.icon}</div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-primary-600 transition-colors">
+              <div style={{ display: 'flex', alignItems: 'start', gap: '1rem' }}>
+                <div style={{
+                  fontSize: '1.75rem',
+                  flexShrink: 0,
+                  width: '2.5rem',
+                  height: '2.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {suggestion.icon}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 style={{ 
+                    fontSize: '0.9375rem',
+                    fontWeight: '600',
+                    color: '#111827',
+                    marginBottom: '0.25rem',
+                    lineHeight: '1.4'
+                  }}>
                     {suggestion.title}
                   </h3>
-                  <p className="text-sm text-gray-500">{suggestion.description}</p>
+                  <p style={{ 
+                    fontSize: '0.8125rem',
+                    color: '#6b7280',
+                    lineHeight: '1.4'
+                  }}>
+                    {suggestion.description}
+                  </p>
                 </div>
-                <svg className="w-5 h-5 text-gray-400 group-hover:text-primary-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg 
+                  style={{ 
+                    width: '1.25rem', 
+                    height: '1.25rem', 
+                    color: '#9ca3af',
+                    flexShrink: 0,
+                    marginTop: '0.25rem'
+                  }} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
-            </motion.button>
+            </button>
           ))}
-        </motion.div>
+        </div>
 
-        {/* Info Cards */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4"
-        >
+        {/* Features Info */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '1rem',
+          padding: '1.5rem',
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #f5f3ff 100%)',
+          borderRadius: '1rem',
+          border: '1px solid #e0e7ff'
+        }}>
           {[
-            { icon: '🎯', text: 'Answers from your materials' },
-            { icon: '⚡', text: 'Lightning fast responses' },
-            { icon: '📖', text: 'Source citations included' }
-          ].map((item, index) => (
-            <div key={index} className="flex items-center gap-2 justify-center text-gray-600">
-              <span className="text-xl">{item.icon}</span>
-              <span className="text-sm">{item.text}</span>
+            { icon: '🎯', text: 'Accurate answers from GTU materials' },
+            { icon: '⚡', text: 'Fast AI-powered responses' },
+            { icon: '📚', text: 'Comprehensive study resources' }
+          ].map((feature, index) => (
+            <div key={index} style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.75rem',
+              justifyContent: 'center'
+            }}>
+              <span style={{ fontSize: '1.5rem' }}>{feature.icon}</span>
+              <span style={{ 
+                fontSize: '0.8125rem',
+                color: '#4f46e5',
+                fontWeight: '500'
+              }}>
+                {feature.text}
+              </span>
             </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </div>
   );

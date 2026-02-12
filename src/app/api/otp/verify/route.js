@@ -1,75 +1,107 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db/mongodb';
-import User from '@/lib/db/models/User';
-import { otpSchema } from '@/lib/utils/validation';
-import { sendWelcomeEmail } from '@/lib/utils/emailService';
+import connectDB from '@/lib/config/db';
+import User from '@/models/User';
 
 export async function POST(request) {
   try {
+    // Always parse body safely
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid request body' },
+        { status: 400 }
+      );
+    }
+
+    const { email, otp } = body;
+
+    if (!email || !otp) {
+      return NextResponse.json(
+        { success: false, error: 'Email and OTP are required' },
+        { status: 400 }
+      );
+    }
+
     await connectDB();
 
-    const body = await request.json();
-    const validatedData = otpSchema.parse(body);
-    const { email, otp } = validatedData;
+    // Normalize inputs
+    const normalizedEmail = email.toLowerCase().trim();
+    const otpString = String(otp).trim();
 
-    // Find user
-    const user = await User.findOne({ email }).select('+otp');
+    if (!/^\d{6}$/.test(otpString)) {
+      return NextResponse.json(
+        { success: false, error: 'OTP must be exactly 6 digits' },
+        { status: 400 }
+      );
+    }
+
+    // Find user - explicitly select otp and otpExpiry
+    const user = await User.findOne({ email: normalizedEmail })
+      .select('+otp +otpExpiry');
+
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'User not found' },
+        { success: false, error: 'No account found with this email' },
         { status: 404 }
       );
     }
 
     if (user.isVerified) {
       return NextResponse.json(
-        { success: false, error: 'Email already verified' },
-        { status: 400 }
+        { success: true, message: 'Email already verified. Please sign in.' },
+        { status: 200 }
       );
     }
 
-    // Verify OTP
-    const isValid = user.verifyOTP(otp);
-    if (!isValid) {
+    if (!user.otp || !user.otpExpiry) {
       return NextResponse.json(
-        { success: false, error: 'Invalid or expired OTP' },
+        { success: false, error: 'OTP not found. Please request a new one.' },
         { status: 400 }
       );
     }
 
-    // Mark as verified
-    user.isVerified = true;
-    user.otp = undefined;
-    await user.save();
+    // Check expiry
+    if (new Date() > new Date(user.otpExpiry)) {
+      return NextResponse.json(
+        { success: false, error: 'OTP has expired. Please request a new one.' },
+        { status: 400 }
+      );
+    }
 
-    // Send welcome email (async, don't wait)
-    sendWelcomeEmail(email, user.name).catch(err => 
-      console.error('Welcome email failed:', err)
-    );
+    // Compare OTPs
+    const storedOTP = String(user.otp).trim();
 
-    return NextResponse.json({
-      success: true,
-      message: 'Email verified successfully',
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+    console.log('[OTP Debug]', {
+      entered: otpString,
+      stored: storedOTP,
+      match: otpString === storedOTP
     });
 
-  } catch (error) {
-    console.error('OTP verify error:', error);
-
-    if (error.name === 'ZodError') {
+    if (otpString !== storedOTP) {
       return NextResponse.json(
-        { success: false, error: error.errors[0].message },
+        { success: false, error: 'Incorrect OTP. Please try again.' },
         { status: 400 }
       );
     }
 
+    // Mark verified - clear OTP fields
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+
     return NextResponse.json(
-      { success: false, error: 'Verification failed' },
+      { success: true, message: 'Email verified successfully!' },
+      { status: 200 }
+    );
+
+  } catch (error) {
+    console.error('[verify-otp] Error:', error);
+    // Always return JSON, never plain text
+    return NextResponse.json(
+      { success: false, error: 'Verification failed. Please try again.' },
       { status: 500 }
     );
   }
