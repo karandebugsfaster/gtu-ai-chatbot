@@ -3,11 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/authOptions';
 import connectDB from '@/lib/db/mongodb';
 import ChatHistory from '@/lib/db/models/ChatHistory';
-import { chatMessageSchema } from '@/lib/utils/validation';
-// import { searchRelevantChunks, buildContextFromChunks } from '@/lib/ai/retrieval';
 import { retrieveRelevantChunks } from '@/lib/ai/retrieval';
 import { generateChatCompletion } from '@/lib/ai/chatCompletion';
-import { generateChatResponse, buildChatMessages, validateResponse } from '@/lib/ai/chatCompletion';
 
 export async function POST(request) {
   const startTime = Date.now();
@@ -23,11 +20,27 @@ export async function POST(request) {
 
     await connectDB();
 
-    const body = await request.json();
-    const validatedData = chatMessageSchema.parse(body);
-    const { sessionId, message, context } = validatedData;
+    // Parse request body
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Invalid request body' },
+        { status: 400 }
+      );
+    }
 
-    // Find chat session
+    const { sessionId, message, context } = body;
+
+    if (!sessionId || !message?.trim()) {
+      return NextResponse.json(
+        { success: false, error: 'sessionId and message are required' },
+        { status: 400 }
+      );
+    }
+
+    // ── Find chat session ──────────────────────────────────────────────────
     const chatSession = await ChatHistory.findOne({
       sessionId,
       user: session.user.id
@@ -40,110 +53,114 @@ export async function POST(request) {
       );
     }
 
-    // Step 1: Search for relevant content
-    const retrievalContext = context || chatSession.context;
-    const searchResults = await searchRelevantChunks(message, {
-      subjectId: retrievalContext.subjectId,
-      branchId: retrievalContext.branchId,
-      semester: retrievalContext.semester
-    });
+    // ── Step 1: Retrieve relevant chunks from uploaded documents ───────────
+    const retrievalContext = context || chatSession.context || {};
 
-    // Step 2: Build context from retrieved chunks
-    const { hasContext, contextText, sources } = buildContextFromChunks(
-      searchResults.results,
-      message
-    );
+    let contextText = null;
+    let sources = [];
 
-    // Step 3: Prepare chat history
+    try {
+      const chunks = await retrieveRelevantChunks(message, {
+        branch:   retrievalContext.branch   || retrievalContext.branchId,
+        semester: retrievalContext.semester,
+        subject:  retrievalContext.subject  || retrievalContext.subjectId,
+      }, 5);
+
+      if (chunks.length > 0) {
+        // Build context string from top chunks
+        contextText = chunks
+          .map((chunk, i) =>
+            `[Source ${i + 1}: ${chunk.source.title}]\n${chunk.text}`
+          )
+          .join('\n\n');
+
+        // Build sources array for response
+        sources = chunks.map(chunk => ({
+          title:      chunk.source.title,
+          subject:    chunk.source.subject,
+          pageNumber: chunk.source.pageNumber,
+          relevance:  Math.round(chunk.score * 100)
+        }));
+      }
+    } catch (retrievalError) {
+      // Retrieval failure should not stop the chat
+      console.warn('[chat/message] Retrieval failed (non-fatal):', retrievalError.message);
+    }
+
+    // ── Step 2: Build chat history for context ─────────────────────────────
     const recentMessages = chatSession.messages
-      .slice(-10)
+      .slice(-10)  // last 10 messages for context window
       .map(msg => ({
-        role: msg.role,
+        role:    msg.role,
         content: msg.content
       }));
 
-    // Step 4: Build messages for AI
-    const messages = buildChatMessages(
-      message,
-      hasContext ? contextText : message,
-      recentMessages
-    );
+    // Add current user message
+    const messages = [
+      ...recentMessages,
+      { role: 'user', content: message }
+    ];
 
-    // Step 5: Generate AI response
-    const aiResponse = await generateChatResponse(messages);
+    // ── Step 3: Generate response via Groq ────────────────────────────────
+    const aiResponse = await generateChatCompletion(messages, contextText);
 
-    // Step 6: Validate response
-    const validation = validateResponse(aiResponse.content, hasContext);
-    const finalResponse = validation.isValid 
-      ? aiResponse.content 
-      : validation.correctedResponse;
-
-    // Step 7: Save messages to chat history
+    // ── Step 4: Save both messages to chat history ────────────────────────
     const userMessage = {
-      role: 'user',
-      content: message,
+      role:      'user',
+      content:   message,
       timestamp: new Date()
     };
 
     const assistantMessage = {
-      role: 'assistant',
-      content: finalResponse,
+      role:      'assistant',
+      content:   aiResponse,
       timestamp: new Date(),
       metadata: {
-        retrievedDocuments: sources.map(s => ({
-          documentId: s.documentId,
-          title: s.title,
-          relevanceScore: s.relevance,
-          chunkIndices: []
-        })),
-        tokensUsed: aiResponse.tokensUsed?.total || 0,
+        sources,
         responseTime: Date.now() - startTime,
-        model: aiResponse.model
+        hasContext:   !!contextText,
       }
     };
 
     chatSession.messages.push(userMessage, assistantMessage);
-    chatSession.totalMessages += 2;
-    chatSession.lastActivity = new Date();
+    chatSession.totalMessages = (chatSession.totalMessages || 0) + 2;
+    chatSession.lastActivity  = new Date();
 
-    // Auto-generate title from first message if still "New Chat"
-    if (chatSession.title === 'New Chat' && chatSession.totalMessages === 2) {
-      chatSession.title = message.substring(0, 50) + (message.length > 50 ? '...' : '');
+    // Auto-generate title from first message
+    if (
+      (!chatSession.title || chatSession.title === 'New Chat') &&
+      chatSession.totalMessages <= 2
+    ) {
+      chatSession.title = message.substring(0, 50) +
+        (message.length > 50 ? '...' : '');
     }
 
     await chatSession.save();
 
-    // Step 8: Return response
+    // ── Step 5: Return response ───────────────────────────────────────────
     return NextResponse.json({
-      success: true,
-      response: finalResponse,
-      sources: sources.map(s => ({
-        documentId: s.documentId,
-        title: s.title,
-        type: s.type,
-        pageNumber: s.pageNumber,
-        relevance: Math.round(s.relevance * 100)
-      })),
+      success:  true,
+      response: aiResponse,
+      sources,
       metadata: {
-        hasContext,
-        totalRetrieved: searchResults.totalFound,
-        tokensUsed: aiResponse.tokensUsed?.total || 0,
-        responseTime: Date.now() - startTime
+        hasContext:   !!contextText,
+        responseTime: Date.now() - startTime,
       }
     });
 
   } catch (error) {
-    console.error('Chat message error:', error);
+    console.error('[chat/message] Error:', error.message);
 
-    if (error.name === 'ZodError') {
+    // Groq rate limit
+    if (error.message?.includes('Rate limit')) {
       return NextResponse.json(
-        { success: false, error: error.errors[0].message },
-        { status: 400 }
+        { success: false, error: 'Too many requests. Please wait a moment.' },
+        { status: 429 }
       );
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to process message' },
+      { success: false, error: 'Failed to process message: ' + error.message },
       { status: 500 }
     );
   }
