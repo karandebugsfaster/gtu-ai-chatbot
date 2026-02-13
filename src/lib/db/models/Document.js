@@ -1,113 +1,64 @@
 import mongoose from 'mongoose';
 
-const ChunkSchema = new mongoose.Schema({
-  content: {
-    type: String,
-    required: true
-  },
-  embedding: {
-    type: [Number],
-    required: true
-  },
-  pageNumber: Number,
-  startIndex: Number,
-  endIndex: Number,
-  metadata: {
-    chapterTitle: String,
-    sectionTitle: String,
-    keywords: [String]
-  }
-}, { _id: true });
-
-const DocumentSchema = new mongoose.Schema({
+const documentSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: true,
+    required: [true, 'Title is required'],
     trim: true
   },
   type: {
     type: String,
-    enum: ['book', 'notes', 'pyq', 'syllabus', 'reference'],
-    required: true
-  },
-  subject: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Subject',
-    required: true
+    enum: ['notes', 'book', 'reference', 'pyq'],
+    required: [true, 'Type is required']
   },
   branch: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Branch',
-    required: true
+    type: String,
+    required: [true, 'Branch is required'],
+    trim: true
   },
   semester: {
     type: Number,
-    required: true,
+    required: [true, 'Semester is required'],
     min: 1,
     max: 8
   },
+  subject: {
+    type: String,
+    required: [true, 'Subject is required'],
+    trim: true
+  },
   academicYear: {
     type: String,
-    required: true
+    default: '2024-25'
   },
-  fileDetails: {
-    originalName: String,
-    fileName: String,
-    filePath: String,
-    fileSize: Number,
-    mimeType: String,
-    uploadedAt: {
-      type: Date,
-      default: Date.now
-    }
+  author: {
+    type: String,
+    default: ''
+  },
+  fileName: String,
+  fileSize: Number,
+  mimeType: String,
+  fileData: String, // base64 encoded
+  uploadedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   processingStatus: {
     type: String,
     enum: ['pending', 'processing', 'completed', 'failed'],
     default: 'pending'
   },
-  processingError: String,
-  chunks: [ChunkSchema],
-  totalChunks: {
-    type: Number,
-    default: 0
-  },
-  metadata: {
-    author: String,
-    publisher: String,
-    edition: String,
-    year: String,
-    totalPages: Number,
-    language: {
-      type: String,
-      default: 'en'
-    },
-    isbn: String
-  },
-  uploadedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  downloads: {
-    type: Number,
-    default: 0
-  },
-  views: {
-    type: Number,
-    default: 0
-  },
-  isActive: {
-    type: Boolean,
-    default: true
-  }
+  views: { type: Number, default: 0 },
+  downloads: { type: Number, default: 0 }
 }, {
   timestamps: true
 });
 
-DocumentSchema.index({ subject: 1, type: 1 });
-DocumentSchema.index({ branch: 1, semester: 1 });
-DocumentSchema.index({ processingStatus: 1 });
-DocumentSchema.index({ isActive: 1 });
+// Indexes
+documentSchema.index({ branch: 1, semester: 1 });
+documentSchema.index({ subject: 1 });
+documentSchema.index({ type: 1 });
+documentSchema.index({ processingStatus: 1 });
 
-export default mongoose.models.Document || mongoose.model('Document', DocumentSchema);
+const Document = mongoose.models.Document || mongoose.model('Document', documentSchema);
+export default Document;

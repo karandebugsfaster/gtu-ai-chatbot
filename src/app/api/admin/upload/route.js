@@ -3,123 +3,136 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/authOptions';
 import connectDB from '@/lib/db/mongodb';
 import Document from '@/lib/db/models/Document';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
-
-const UPLOAD_DIR = join(process.cwd(), 'uploads');
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'admin') {
+
+    if (!session) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: 'Unauthorized - Please sign in' },
         { status: 401 }
       );
     }
 
-    await connectDB();
-
-    const formData = await request.formData();
-    const file = formData.get('file');
-    const title = formData.get('title');
-    const type = formData.get('type');
-    const subjectId = formData.get('subjectId');
-    const branchId = formData.get('branchId');
-    const semester = parseInt(formData.get('semester'));
-    const academicYear = formData.get('academicYear');
-    
-    // Optional metadata
-    const author = formData.get('author');
-    const publisher = formData.get('publisher');
-    const edition = formData.get('edition');
-    const year = formData.get('year');
-
-    // Validation
-    if (!file || !title || !type || !subjectId || !branchId || !semester || !academicYear) {
+    if (session.user?.role !== 'admin') {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { success: false, error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      );
+    }
+
+    // Parse multipart form data
+    let formData;
+    try {
+      formData = await request.formData();
+    } catch (err) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to parse form data' },
         { status: 400 }
       );
     }
 
-    // Check file size
-    if (file.size > MAX_FILE_SIZE) {
+    // Extract all fields - log them to debug
+    const title        = formData.get('title')?.toString().trim();
+    const type         = formData.get('type')?.toString().trim();
+    const branch       = formData.get('branch')?.toString().trim();
+    const semester     = formData.get('semester')?.toString().trim();
+    const subject      = formData.get('subject')?.toString().trim();
+    const academicYear = formData.get('academicYear')?.toString().trim() || '2024-25';
+    const author       = formData.get('author')?.toString().trim() || '';
+    const file         = formData.get('file');
+
+    // Debug log every field received
+    console.log('[upload] Fields received:', {
+      title, type, branch, semester, subject, academicYear, author,
+      hasFile: !!file,
+      fileName: file?.name,
+      fileSize: file?.size
+    });
+
+    // Validate required fields one by one for clear error messages
+    const missing = [];
+    if (!title)    missing.push('title');
+    if (!type)     missing.push('type');
+    if (!branch)   missing.push('branch');
+    if (!semester) missing.push('semester');
+    if (!subject)  missing.push('subject');
+    if (!file)     missing.push('file');
+
+    if (missing.length > 0) {
+      console.log('[upload] Missing fields:', missing);
       return NextResponse.json(
-        { success: false, error: 'File size exceeds 50MB limit' },
+        { success: false, error: `Missing required fields: ${missing.join(', ')}` },
         { status: 400 }
       );
     }
 
-    // Check file type (PDF only)
-    if (file.type !== 'application/pdf') {
+    if (!file || typeof file === 'string') {
       return NextResponse.json(
-        { success: false, error: 'Only PDF files are allowed' },
+        { success: false, error: 'No file uploaded' },
         { status: 400 }
       );
     }
 
-    // Create upload directory structure
-    const typeDir = join(UPLOAD_DIR, type);
-    const subjectDir = join(typeDir, subjectId);
-    
-    if (!existsSync(typeDir)) {
-      await mkdir(typeDir, { recursive: true });
-    }
-    if (!existsSync(subjectDir)) {
-      await mkdir(subjectDir, { recursive: true });
+    // File size check (50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      return NextResponse.json(
+        { success: false, error: 'File size must be less than 50MB' },
+        { status: 400 }
+      );
     }
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const originalName = file.name;
-    const fileName = `${timestamp}_${originalName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const filePath = join(subjectDir, fileName);
-
-    // Save file
+    // Convert file to buffer for storage
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
 
-    // Create document record
+    await connectDB();
+
+    // Save document metadata to MongoDB
+    // Store file as base64 OR save path if using local storage
     const document = await Document.create({
       title,
       type,
-      subject: subjectId,
-      branch: branchId,
-      semester,
+      branch,
+      semester: Number(semester), // ensure it's a number
+      subject,
       academicYear,
-      fileDetails: {
-        originalName,
-        fileName,
-        filePath,
-        fileSize: file.size,
-        mimeType: file.type
-      },
-      metadata: {
-        author: author || undefined,
-        publisher: publisher || undefined,
-        edition: edition || undefined,
-        year: year || undefined
-      },
+      author: author || undefined,
+      fileName: file.name,
+      fileSize: file.size,
+      mimeType: file.type,
+      // Store as base64 for now (for small files)
+      // For production, use cloud storage like S3/Cloudinary
+      fileData: buffer.toString('base64'),
+      uploadedBy: session.user.id,
       processingStatus: 'pending',
-      uploadedBy: session.user.id
+      createdAt: new Date()
     });
 
-    return NextResponse.json({
-      success: true,
-      message: 'File uploaded successfully',
-      documentId: document._id,
-      processingStatus: document.processingStatus
-    }, { status: 201 });
+    console.log('[upload] Document saved:', document._id);
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: 'Document uploaded successfully',
+        documentId: document._id
+      },
+      { status: 201 }
+    );
 
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('[upload] Error:', error);
     return NextResponse.json(
-      { success: false, error: 'File upload failed' },
+      { success: false, error: 'Upload failed: ' + error.message },
       { status: 500 }
     );
   }
 }
+
+// Required for file uploads in Next.js
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};

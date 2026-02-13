@@ -100,7 +100,7 @@ function VerifyOTPContent() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/verify-otp', {
+      const response = await fetch('/api/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp: code })
@@ -143,7 +143,7 @@ function VerifyOTPContent() {
     setResending(true);
 
     try {
-      const response = await fetch('/api/auth/resend-otp', {
+      const response = await fetch('/api/otp/resend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })

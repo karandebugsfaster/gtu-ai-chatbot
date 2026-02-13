@@ -7,9 +7,9 @@ import Card from '@/components/ui/Card';
 import Loader from '@/components/ui/Loader';
 import toast from 'react-hot-toast';
 
-export default function SemesterPage({ params }) {
+export default async function SemesterPage({ params }) {
   const router = useRouter();
-  const { branchId, semesterId } = params;
+  const { branchId, semesterId } = await params;
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
 

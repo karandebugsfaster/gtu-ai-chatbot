@@ -1,483 +1,839 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import Card from '@/components/ui/Card';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import Loader from '@/components/ui/Loader';
 import toast from 'react-hot-toast';
 
-export default function QPGPage() {
-  const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [branches, setBranches] = useState([]);
-  const [subjects, setSubjects] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [analysis, setAnalysis] = useState(null);
+// ─── BRANCH / SEMESTER / SUBJECT DATA ─────────────────────────────────────────
+const BRANCHES = [
+  {
+    id: 'ce',
+    name: 'Computer Engineering',
+    shortName: 'CE',
+    icon: '💻',
+    color: '#6366f1',
+    bg: '#f5f3ff'
+  },
+  {
+    id: 'it',
+    name: 'Information Technology',
+    shortName: 'IT',
+    icon: '🌐',
+    color: '#0ea5e9',
+    bg: '#f0f9ff'
+  },
+  {
+    id: 'ec',
+    name: 'Electronics & Communication',
+    shortName: 'EC',
+    icon: '📡',
+    color: '#10b981',
+    bg: '#f0fdf4'
+  },
+  {
+    id: 'ic',
+    name: 'Instrumentation & Control',
+    shortName: 'IC',
+    icon: '🎛️',
+    color: '#f59e0b',
+    bg: '#fffbeb'
+  },
+  {
+    id: 'me',
+    name: 'Mechanical Engineering',
+    shortName: 'ME',
+    icon: '⚙️',
+    color: '#ef4444',
+    bg: '#fef2f2'
+  },
+  {
+    id: 'civil',
+    name: 'Civil Engineering',
+    shortName: 'CIVIL',
+    icon: '🏗️',
+    color: '#8b5cf6',
+    bg: '#faf5ff'
+  },
+];
 
-  const [formData, setFormData] = useState({
-    branchId: '',
-    semester: '',
-    subjectId: '',
-    yearRangeStart: '2020',
-    yearRangeEnd: '2024',
+const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
+
+const SUBJECTS_MAP = {
+  ce: {
+    3: ['Data Structures', 'Digital Electronics', 'Computer Organization', 'Discrete Mathematics'],
+    4: ['Analysis of Algorithms', 'Database Management', 'Operating Systems', 'Computer Networks'],
+    5: ['Software Engineering', 'Compiler Design', 'Web Technology', 'Theory of Computation'],
+    6: ['Artificial Intelligence', 'Machine Learning', 'Information Security', 'Mobile Computing'],
+  },
+  it: {
+    3: ['Data Structures', 'Digital Electronics', 'Computer Organization', 'Discrete Mathematics'],
+    4: ['Database Management', 'Operating Systems', 'Computer Networks', 'Java Programming'],
+    5: ['Web Development', 'Software Engineering', 'Network Security', 'Linux Administration'],
+    6: ['Cloud Computing', 'Big Data Analytics', 'IoT', 'Mobile App Development'],
+  },
+  ec: {
+    3: ['Signals & Systems', 'Electronic Devices', 'Network Analysis', 'Digital Electronics'],
+    4: ['Analog Circuits', 'Microprocessors', 'Communication Theory', 'Electromagnetic Fields'],
+    5: ['Digital Communication', 'VLSI Design', 'Microcontrollers', 'Control Systems'],
+    6: ['Wireless Communication', 'Embedded Systems', 'Optical Fiber', 'Signal Processing'],
+  },
+  ic: {
+    3: ['Measurement Systems', 'Electronic Devices', 'Control Theory', 'Transducers'],
+    4: ['Process Control', 'Industrial Instrumentation', 'PLC Programming', 'Signal Conditioning'],
+    5: ['Advanced Control', 'Biomedical Instrumentation', 'DCS/SCADA', 'Sensors & Actuators'],
+    6: ['Industrial Automation', 'Robotics', 'Embedded Control', 'Power Electronics'],
+  },
+  me: {
+    3: ['Thermodynamics', 'Strength of Materials', 'Manufacturing Processes', 'Engineering Drawing'],
+    4: ['Fluid Mechanics', 'Machine Design', 'Heat Transfer', 'Theory of Machines'],
+    5: ['CAD/CAM', 'Refrigeration & AC', 'Industrial Engineering', 'Metrology'],
+    6: ['Automobile Engineering', 'Robotics', 'Tribology', 'Power Plant Engineering'],
+  },
+  civil: {
+    3: ['Structural Analysis', 'Fluid Mechanics', 'Geotechnical Engineering', 'Surveying'],
+    4: ['RCC Design', 'Transportation Engineering', 'Hydrology', 'Environmental Engineering'],
+    5: ['Foundation Engineering', 'Steel Design', 'Water Supply', 'Town Planning'],
+    6: ['Bridge Engineering', 'Earthquake Engineering', 'Remote Sensing', 'Quantity Surveying'],
+  },
+};
+
+const QUESTION_TYPES = [
+  { id: 'mcq', label: 'Multiple Choice', icon: '◉', description: '4 options, 1 correct' },
+  { id: 'short', label: 'Short Answer', icon: '✎', description: '2-3 marks' },
+  { id: 'long', label: 'Long Answer', icon: '≡', description: '5-7 marks' },
+  { id: 'numerical', label: 'Numerical', icon: '#', description: 'Calculation based' },
+];
+
+const DIFFICULTY_LEVELS = [
+  { id: 'easy', label: 'Easy', color: '#10b981', bg: '#f0fdf4' },
+  { id: 'medium', label: 'Medium', color: '#f59e0b', bg: '#fffbeb' },
+  { id: 'hard', label: 'Hard', color: '#ef4444', bg: '#fef2f2' },
+  { id: 'mixed', label: 'Mixed', color: '#6366f1', bg: '#f5f3ff' },
+];
+
+// ─── STEP INDICATOR ─────────────────────────────────────────────────────────────
+function StepIndicator({ steps, current }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0', marginBottom: '2.5rem' }}>
+      {steps.map((step, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', flex: i < steps.length - 1 ? 1 : 'none' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem' }}>
+            <div style={{
+              width: '2.25rem',
+              height: '2.25rem',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.875rem',
+              fontWeight: '700',
+              transition: 'all 0.3s ease',
+              background: i < current
+                ? 'linear-gradient(135deg, #6366f1 0%, #9333ea 100%)'
+                : i === current
+                  ? 'linear-gradient(135deg, #6366f1 0%, #9333ea 100%)'
+                  : '#f3f4f6',
+              color: i <= current ? 'white' : '#9ca3af',
+              boxShadow: i === current ? '0 4px 12px rgba(99,102,241,0.3)' : 'none'
+            }}>
+              {i < current ? (
+                <svg style={{ width: '1rem', height: '1rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (i + 1)}
+            </div>
+            <span style={{
+              fontSize: '0.6875rem',
+              fontWeight: '600',
+              color: i <= current ? '#6366f1' : '#9ca3af',
+              whiteSpace: 'nowrap',
+              display: 'none'
+            }} className="step-label">
+              {step}
+            </span>
+          </div>
+          {i < steps.length - 1 && (
+            <div style={{
+              flex: 1,
+              height: '2px',
+              background: i < current
+                ? 'linear-gradient(90deg, #6366f1 0%, #9333ea 100%)'
+                : '#e5e7eb',
+              margin: '0 0.5rem',
+              transition: 'all 0.3s ease',
+              marginBottom: '0.875rem'
+            }} />
+          )}
+        </div>
+      ))}
+      <style jsx>{`
+        @media (min-width: 640px) {
+          .step-label { display: block !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ─── MAIN QPG PAGE ────────────────────────────────────────────────────────────
+export default function QPGPage() {
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  const [step, setStep] = useState(0);
+  const [generating, setGenerating] = useState(false);
+  const [generatedPaper, setGeneratedPaper] = useState(null);
+
+  const [form, setForm] = useState({
+    branch: null,
+    semester: null,
+    subject: null,
+    questionTypes: [],
+    difficulty: 'mixed',
+    totalQuestions: 10,
     totalMarks: 70,
-    duration: '3 hours',
-    generationType: 'pattern-based'
+    examDuration: 180,
+    instructions: '',
+    includeAnswerKey: false,
   });
 
-  useEffect(() => {
-    fetchBranches();
-  }, []);
+  const steps = ['Branch', 'Subject', 'Configuration', 'Generate'];
 
-  useEffect(() => {
-    if (formData.branchId && formData.semester) {
-      fetchSubjects();
-    }
-  }, [formData.branchId, formData.semester]);
+  const selectedBranch = BRANCHES.find(b => b.id === form.branch);
+  const availableSubjects = form.branch && form.semester
+    ? (SUBJECTS_MAP[form.branch]?.[form.semester] || [])
+    : [];
 
-  const fetchBranches = async () => {
-    try {
-      const response = await fetch('/api/gtu/branches');
-      const data = await response.json();
-      if (data.success) {
-        setBranches(data.branches);
-      }
-    } catch (error) {
-      console.error('Error fetching branches:', error);
-    }
-  };
-
-  const fetchSubjects = async () => {
-    try {
-      const response = await fetch(
-        `/api/gtu/subjects?branchId=${formData.branchId}&semester=${formData.semester}`
-      );
-      const data = await response.json();
-      if (data.success) {
-        setSubjects(data.subjects);
-      }
-    } catch (error) {
-      console.error('Error fetching subjects:', error);
-    }
-  };
-
-  const handleAnalyze = async () => {
-    if (!formData.subjectId) {
-      toast.error('Please select a subject');
-      return;
-    }
-
-    setAnalyzing(true);
-
-    try {
-      const response = await fetch('/api/qpg/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subjectId: formData.subjectId,
-          yearRange: {
-            start: formData.yearRangeStart,
-            end: formData.yearRangeEnd
-          }
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setAnalysis(data.analysis);
-        setStep(2);
-        toast.success('Analysis completed successfully!');
-      } else {
-        toast.error(data.error || 'Analysis failed');
-      }
-    } catch (error) {
-      console.error('Error analyzing PYQs:', error);
-      toast.error('Failed to analyze PYQs');
-    } finally {
-      setAnalyzing(false);
-    }
+  const canNext = () => {
+    if (step === 0) return form.branch && form.semester;
+    if (step === 1) return form.subject;
+    if (step === 2) return form.questionTypes.length > 0 && form.difficulty;
+    return false;
   };
 
   const handleGenerate = async () => {
-    setGenerating(true);
+    if (!session) {
+      toast.error('Please sign in to generate question papers');
+      router.push('/signin');
+      return;
+    }
 
+    setGenerating(true);
     try {
       const response = await fetch('/api/qpg/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subjectId: formData.subjectId,
-          config: {
-            totalMarks: formData.totalMarks,
-            duration: formData.duration,
-            generationType: formData.generationType,
-            yearRange: {
-              start: formData.yearRangeStart,
-              end: formData.yearRangeEnd
-            }
-          }
-        })
+        body: JSON.stringify(form)
       });
 
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try { data = JSON.parse(text); } catch {
+        toast.error('Server error. Please try again.');
+        return;
+      }
 
       if (data.success) {
-        toast.success('Question paper generated successfully!');
-        setStep(3);
-        // Download the generated paper
-        window.open(`/api/qpg/download/${data.questionPaper._id}`, '_blank');
+        setGeneratedPaper(data.paper);
+        setStep(4);
+        toast.success('Question paper generated!');
       } else {
         toast.error(data.error || 'Generation failed');
       }
-    } catch (error) {
-      console.error('Error generating QP:', error);
-      toast.error('Failed to generate question paper');
+    } catch (err) {
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setGenerating(false);
     }
   };
 
-  return (
-    <div className="h-full overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl font-bold gradient-text mb-2">
-            AI Question Paper Generator
-          </h1>
-          <p className="text-gray-600">
-            Generate custom question papers based on previous year patterns and analysis
-          </p>
-        </motion.div>
+  const toggleQuestionType = (id) => {
+    setForm(prev => ({
+      ...prev,
+      questionTypes: prev.questionTypes.includes(id)
+        ? prev.questionTypes.filter(t => t !== id)
+        : [...prev.questionTypes, id]
+    }));
+  };
 
-        {/* Progress Steps */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <div className="flex items-center justify-between max-w-2xl mx-auto">
-            {[
-              { num: 1, label: 'Configure' },
-              { num: 2, label: 'Analyze' },
-              { num: 3, label: 'Generate' }
-            ].map((s, index) => (
-              <div key={s.num} className="flex items-center flex-1">
-                <div className="flex flex-col items-center flex-1">
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
-                      step >= s.num
-                        ? 'bg-gradient-to-r from-primary-600 to-purple-600 text-white shadow-lg'
-                        : 'bg-gray-200 text-gray-400'
-                    }`}
-                  >
-                    {step > s.num ? (
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      s.num
-                    )}
-                  </div>
-                  <span className={`text-sm mt-2 font-medium ${step >= s.num ? 'text-primary-600' : 'text-gray-400'}`}>
-                    {s.label}
-                  </span>
-                </div>
-                {index < 2 && (
-                  <div className={`h-1 flex-1 mx-2 transition-all ${step > s.num ? 'bg-primary-600' : 'bg-gray-200'}`} />
-                )}
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Step Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          {step === 1 && (
-            <Card className="max-w-3xl mx-auto">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Configure Question Paper</h2>
-
-              <div className="space-y-5">
-                {/* Branch Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Branch <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.branchId}
-                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value, subjectId: '' })}
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
-                  >
-                    <option value="">Choose a branch</option>
-                    {branches.map((branch) => (
-                      <option key={branch._id} value={branch._id}>
-                        {branch.branchName} ({branch.branchCode})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Semester Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Semester <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.semester}
-                    onChange={(e) => setFormData({ ...formData, semester: e.target.value, subjectId: '' })}
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
-                  >
-                    <option value="">Choose a semester</option>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                      <option key={sem} value={sem}>
-                        Semester {sem}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Subject Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Subject <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.subjectId}
-                    onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
-                    disabled={!formData.branchId || !formData.semester}
-                    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  >
-                    <option value="">Choose a subject</option>
-                    {subjects.map((subject) => (
-                      <option key={subject._id} value={subject._id}>
-                        {subject.subjectName} ({subject.subjectCode})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Year Range */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label="From Year"
-                    type="text"
-                    value={formData.yearRangeStart}
-                    onChange={(e) => setFormData({ ...formData, yearRangeStart: e.target.value })}
-                    placeholder="2020"
-                  />
-                  <Input
-                    label="To Year"
-                    type="text"
-                    value={formData.yearRangeEnd}
-                    onChange={(e) => setFormData({ ...formData, yearRangeEnd: e.target.value })}
-                    placeholder="2024"
-                  />
-                </div>
-
-                {/* Total Marks & Duration */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label="Total Marks"
-                    type="number"
-                    value={formData.totalMarks}
-                    onChange={(e) => setFormData({ ...formData, totalMarks: parseInt(e.target.value) })}
-                  />
-                  <Input
-                    label="Duration"
-                    type="text"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                  />
-                </div>
-
-                <Button
-                  fullWidth
-                  size="lg"
-                  onClick={handleAnalyze}
-                  loading={analyzing}
-                  disabled={!formData.subjectId}
-                  className="mt-6"
-                >
-                  {analyzing ? 'Analyzing PYQs...' : 'Analyze & Continue'}
-                </Button>
-              </div>
-            </Card>
-          )}
-
-          {step === 2 && analysis && (
-            <div className="space-y-6">
-              {/* Analysis Results */}
-              <Card>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Analysis Results</h2>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-100">
-                    <p className="text-sm text-blue-600 font-medium mb-1">Total PYQs</p>
-                    <p className="text-3xl font-bold text-blue-900">{analysis.totalPYQs}</p>
-                  </div>
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
-                    <p className="text-sm text-purple-600 font-medium mb-1">Questions</p>
-                    <p className="text-3xl font-bold text-purple-900">{analysis.totalQuestions}</p>
-                  </div>
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
-                    <p className="text-sm text-green-600 font-medium mb-1">Repeated</p>
-                    <p className="text-3xl font-bold text-green-900">{analysis.repeatedQuestions?.length || 0}</p>
-                  </div>
-                  <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border border-orange-100">
-                    <p className="text-sm text-orange-600 font-medium mb-1">Year Range</p>
-                    <p className="text-xl font-bold text-orange-900">
-                      {analysis.yearRange?.start} - {analysis.yearRange?.end}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Topic Frequency */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Top Topics</h3>
-                  <div className="space-y-2">
-                    {analysis.topicFrequency?.slice(0, 5).map((topic, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium text-gray-700">{topic.topic}</span>
-                            <span className="text-sm text-gray-500">{topic.count} questions</span>
-                          </div>
-                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-primary-600 to-purple-600 rounded-full transition-all"
-                              style={{ width: `${topic.percentage}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Difficulty Distribution */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Difficulty Distribution</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                      <p className="text-sm text-green-600 font-medium mb-1">Easy</p>
-                      <p className="text-2xl font-bold text-green-900">
-                        {analysis.difficultyDistribution?.easy?.percentage || 0}%
-                      </p>
-                    </div>
-                    <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-                      <p className="text-sm text-yellow-600 font-medium mb-1">Medium</p>
-                      <p className="text-2xl font-bold text-yellow-900">
-                        {analysis.difficultyDistribution?.medium?.percentage || 0}%
-                      </p>
-                    </div>
-                    <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-                      <p className="text-sm text-red-600 font-medium mb-1">Hard</p>
-                      <p className="text-2xl font-bold text-red-900">
-                        {analysis.difficultyDistribution?.hard?.percentage || 0}%
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              {/* High Probability Questions */}
-              {analysis.highProbabilityQuestions?.length > 0 && (
-                <Card>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    High Probability Questions (Top 5)
-                  </h3>
-                  <div className="space-y-3">
-                    {analysis.highProbabilityQuestions.slice(0, 5).map((item, index) => (
-                      <div key={index} className="p-4 bg-gradient-to-r from-primary-50 to-purple-50 rounded-lg border border-primary-200">
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <h4 className="font-medium text-gray-900 flex-1">{item.topic}</h4>
-                          <span className="px-3 py-1 bg-primary-600 text-white text-xs font-bold rounded-full">
-                            {item.probability}% probability
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600">Appeared {item.frequency} times</p>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-4">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => setStep(1)}
-                  className="flex-1"
-                >
-                  Back to Configure
-                </Button>
-                <Button
-                  size="lg"
-                  onClick={handleGenerate}
-                  loading={generating}
-                  className="flex-1"
-                >
-                  {generating ? 'Generating...' : 'Generate Question Paper'}
-                </Button>
-              </div>
+  // ── STEP 0: Branch & Semester ──────────────────────────────────────────────
+  const renderStep0 = () => (
+    <div>
+      <h2 style={sectionTitle}>Select Branch</h2>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+        gap: '0.875rem',
+        marginBottom: '2rem'
+      }}>
+        {BRANCHES.map(branch => (
+          <button
+            key={branch.id}
+            onClick={() => setForm(p => ({ ...p, branch: branch.id, subject: null }))}
+            style={{
+              padding: '1.25rem 1rem',
+              border: `2px solid ${form.branch === branch.id ? branch.color : '#e5e7eb'}`,
+              borderRadius: '1rem',
+              background: form.branch === branch.id ? branch.bg : 'white',
+              cursor: 'pointer',
+              textAlign: 'center',
+              transition: 'all 0.2s ease',
+              boxShadow: form.branch === branch.id
+                ? `0 4px 12px ${branch.color}25`
+                : '0 1px 3px rgba(0,0,0,0.05)'
+            }}
+            onMouseEnter={e => {
+              if (form.branch !== branch.id) {
+                e.currentTarget.style.borderColor = branch.color;
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }
+            }}
+            onMouseLeave={e => {
+              if (form.branch !== branch.id) {
+                e.currentTarget.style.borderColor = '#e5e7eb';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }
+            }}
+          >
+            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{branch.icon}</div>
+            <div style={{
+              fontSize: '0.75rem',
+              fontWeight: '700',
+              color: form.branch === branch.id ? branch.color : '#374151',
+              marginBottom: '0.25rem'
+            }}>
+              {branch.shortName}
             </div>
-          )}
+            <div style={{ fontSize: '0.6875rem', color: '#6b7280', lineHeight: '1.3' }}>
+              {branch.name}
+            </div>
+          </button>
+        ))}
+      </div>
 
-          {step === 3 && (
-            <Card className="max-w-2xl mx-auto text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 200 }}
-                className="w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl"
-              >
-                <svg className="w-14 h-14 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </motion.div>
-
-              <h2 className="text-3xl font-bold text-gray-900 mb-3">
-                Question Paper Generated Successfully!
-              </h2>
-              <p className="text-gray-600 mb-8">
-                Your question paper has been generated and downloaded automatically.
-              </p>
-
-              <div className="flex gap-4 justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setStep(1);
-                    setAnalysis(null);
-                  }}
-                >
-                  Generate Another
-                </Button>
-                <Button onClick={() => router.push('/gtu')}>
-                  Browse Resources
-                </Button>
-              </div>
-            </Card>
-          )}
-        </motion.div>
+      <h2 style={sectionTitle}>Select Semester</h2>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+        {SEMESTERS.map(sem => (
+          <button
+            key={sem}
+            onClick={() => setForm(p => ({ ...p, semester: sem, subject: null }))}
+            style={{
+              width: '3.5rem',
+              height: '3.5rem',
+              border: `2px solid ${form.semester === sem ? '#6366f1' : '#e5e7eb'}`,
+              borderRadius: '0.875rem',
+              background: form.semester === sem ? '#f5f3ff' : 'white',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: '700',
+              color: form.semester === sem ? '#6366f1' : '#374151',
+              transition: 'all 0.2s ease',
+              boxShadow: form.semester === sem ? '0 4px 12px rgba(99,102,241,0.2)' : 'none'
+            }}
+          >
+            {sem}
+          </button>
+        ))}
       </div>
     </div>
   );
+
+  // ── STEP 1: Subject ────────────────────────────────────────────────────────
+  const renderStep1 = () => (
+    <div>
+      {selectedBranch && (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.5rem 1rem',
+          background: selectedBranch.bg,
+          border: `1px solid ${selectedBranch.color}30`,
+          borderRadius: '2rem',
+          marginBottom: '1.5rem',
+          fontSize: '0.875rem',
+          fontWeight: '600',
+          color: selectedBranch.color
+        }}>
+          <span>{selectedBranch.icon}</span>
+          {selectedBranch.name} — Semester {form.semester}
+        </div>
+      )}
+
+      <h2 style={sectionTitle}>Select Subject</h2>
+      {availableSubjects.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+          {availableSubjects.map((subj, i) => (
+            <button
+              key={i}
+              onClick={() => setForm(p => ({ ...p, subject: subj }))}
+              style={{
+                padding: '1rem 1.25rem',
+                border: `2px solid ${form.subject === subj ? '#6366f1' : '#e5e7eb'}`,
+                borderRadius: '0.875rem',
+                background: form.subject === subj ? '#f5f3ff' : 'white',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontSize: '0.9375rem',
+                fontWeight: form.subject === subj ? '600' : '500',
+                color: form.subject === subj ? '#6366f1' : '#374151',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <span>{subj}</span>
+              {form.subject === subj && (
+                <svg style={{ width: '1.25rem', height: '1.25rem', color: '#6366f1' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div style={{
+          padding: '2rem',
+          textAlign: 'center',
+          background: '#f9fafb',
+          borderRadius: '1rem',
+          border: '2px dashed #e5e7eb',
+          color: '#6b7280'
+        }}>
+          No subjects found for this semester. Subjects will be added by admin.
+        </div>
+      )}
+    </div>
+  );
+
+  // ── STEP 2: Configuration ──────────────────────────────────────────────────
+  const renderStep2 = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      {/* Question Types */}
+      <div>
+        <h2 style={sectionTitle}>Question Types</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
+          {QUESTION_TYPES.map(qt => (
+            <button
+              key={qt.id}
+              onClick={() => toggleQuestionType(qt.id)}
+              style={{
+                padding: '1rem',
+                border: `2px solid ${form.questionTypes.includes(qt.id) ? '#6366f1' : '#e5e7eb'}`,
+                borderRadius: '0.875rem',
+                background: form.questionTypes.includes(qt.id) ? '#f5f3ff' : 'white',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{qt.icon}</div>
+              <div style={{
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: form.questionTypes.includes(qt.id) ? '#6366f1' : '#111827',
+                marginBottom: '0.25rem'
+              }}>{qt.label}</div>
+              <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{qt.description}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Difficulty */}
+      <div>
+        <h2 style={sectionTitle}>Difficulty Level</h2>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+          {DIFFICULTY_LEVELS.map(d => (
+            <button
+              key={d.id}
+              onClick={() => setForm(p => ({ ...p, difficulty: d.id }))}
+              style={{
+                padding: '0.625rem 1.25rem',
+                border: `2px solid ${form.difficulty === d.id ? d.color : '#e5e7eb'}`,
+                borderRadius: '2rem',
+                background: form.difficulty === d.id ? d.bg : 'white',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: form.difficulty === d.id ? d.color : '#374151',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Numbers */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+        {[
+          { key: 'totalQuestions', label: 'Total Questions', min: 5, max: 30, unit: 'questions' },
+          { key: 'totalMarks', label: 'Total Marks', min: 20, max: 100, unit: 'marks' },
+          { key: 'examDuration', label: 'Duration', min: 60, max: 300, unit: 'minutes' },
+        ].map(({ key, label, min, max, unit }) => (
+          <div key={key}>
+            <label style={{ ...labelStyle }}>{label}</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <input
+                type="number"
+                min={min}
+                max={max}
+                value={form[key]}
+                onChange={e => setForm(p => ({ ...p, [key]: Number(e.target.value) }))}
+                style={{
+                  flex: 1,
+                  padding: '0.625rem 0.875rem',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '0.75rem',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  color: '#111827',
+                  outline: 'none',
+                  background: 'white'
+                }}
+                onFocus={e => e.currentTarget.style.borderColor = '#6366f1'}
+                onBlur={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+              />
+              <span style={{ fontSize: '0.75rem', color: '#6b7280', whiteSpace: 'nowrap' }}>{unit}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Answer Key Toggle */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '1rem 1.25rem',
+        background: '#f9fafb',
+        borderRadius: '0.875rem',
+        border: '2px solid #e5e7eb'
+      }}>
+        <div>
+          <div style={{ fontSize: '0.9375rem', fontWeight: '600', color: '#111827' }}>Include Answer Key</div>
+          <div style={{ fontSize: '0.8125rem', color: '#6b7280' }}>Generate answer key along with questions</div>
+        </div>
+        <button
+          onClick={() => setForm(p => ({ ...p, includeAnswerKey: !p.includeAnswerKey }))}
+          style={{
+            width: '3rem',
+            height: '1.625rem',
+            borderRadius: '2rem',
+            border: 'none',
+            background: form.includeAnswerKey
+              ? 'linear-gradient(135deg, #6366f1 0%, #9333ea 100%)'
+              : '#d1d5db',
+            cursor: 'pointer',
+            position: 'relative',
+            transition: 'background 0.2s ease',
+            flexShrink: 0
+          }}
+        >
+          <div style={{
+            position: 'absolute',
+            top: '3px',
+            left: form.includeAnswerKey ? 'calc(100% - 1.25rem)' : '3px',
+            width: '1.125rem',
+            height: '1.125rem',
+            background: 'white',
+            borderRadius: '50%',
+            transition: 'left 0.2s ease',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+          }} />
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── STEP 3: Review & Generate ──────────────────────────────────────────────
+  const renderStep3 = () => (
+    <div>
+      <h2 style={sectionTitle}>Review Configuration</h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
+        {[
+          { label: 'Branch', value: selectedBranch?.name, icon: selectedBranch?.icon },
+          { label: 'Semester', value: `Semester ${form.semester}`, icon: '📅' },
+          { label: 'Subject', value: form.subject, icon: '📖' },
+          { label: 'Question Types', value: form.questionTypes.join(', '), icon: '❓' },
+          { label: 'Difficulty', value: form.difficulty, icon: '🎯' },
+          { label: 'Total Questions', value: form.totalQuestions, icon: '🔢' },
+          { label: 'Total Marks', value: form.totalMarks, icon: '⭐' },
+          { label: 'Duration', value: `${form.examDuration} minutes`, icon: '⏱️' },
+          { label: 'Answer Key', value: form.includeAnswerKey ? 'Yes' : 'No', icon: '🔑' },
+        ].map((item, i) => (
+          <div key={i} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            padding: '0.875rem 1.25rem',
+            background: 'white',
+            border: '1px solid #f3f4f6',
+            borderRadius: '0.75rem',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+          }}>
+            <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>{item.icon}</span>
+            <span style={{ fontSize: '0.8125rem', color: '#6b7280', fontWeight: '500', width: '8rem', flexShrink: 0 }}>
+              {item.label}
+            </span>
+            <span style={{ fontSize: '0.9375rem', fontWeight: '600', color: '#111827', textTransform: 'capitalize' }}>
+              {item.value}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={handleGenerate}
+        disabled={generating}
+        style={{
+          width: '100%',
+          padding: '1rem',
+          background: generating ? '#e5e7eb' : 'linear-gradient(135deg, #6366f1 0%, #9333ea 100%)',
+          color: generating ? '#9ca3af' : 'white',
+          border: 'none',
+          borderRadius: '0.875rem',
+          fontSize: '1rem',
+          fontWeight: '700',
+          cursor: generating ? 'not-allowed' : 'pointer',
+          boxShadow: generating ? 'none' : '0 4px 15px rgba(99,102,241,0.35)',
+          transition: 'all 0.2s ease',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.75rem'
+        }}
+        onMouseEnter={e => {
+          if (!generating) {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 8px 20px rgba(99,102,241,0.4)';
+          }
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          if (!generating) e.currentTarget.style.boxShadow = '0 4px 15px rgba(99,102,241,0.35)';
+        }}
+      >
+        {generating ? (
+          <>
+            <svg style={{ width: '1.25rem', height: '1.25rem', animation: 'spin 1s linear infinite' }} fill="none" viewBox="0 0 24 24">
+              <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Generating Paper...
+          </>
+        ) : (
+          <>
+            <svg style={{ width: '1.25rem', height: '1.25rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Generate Question Paper
+          </>
+        )}
+      </button>
+    </div>
+  );
+
+  // ── STEP 4: Result ─────────────────────────────────────────────────────────
+  const renderResult = () => (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{
+        width: '5rem',
+        height: '5rem',
+        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        margin: '0 auto 1.5rem'
+      }}>
+        <svg style={{ width: '2.5rem', height: '2.5rem', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827', marginBottom: '0.75rem' }}>
+        Paper Generated!
+      </h2>
+      <p style={{ color: '#6b7280', marginBottom: '2rem', fontSize: '0.9375rem' }}>
+        Your question paper is ready for download.
+      </p>
+      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => window.open(`/api/qpg/download/${generatedPaper?.id}`, '_blank')}
+          style={{
+            padding: '0.875rem 2rem',
+            background: 'linear-gradient(135deg, #6366f1 0%, #9333ea 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.875rem',
+            fontSize: '0.9375rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            boxShadow: '0 4px 12px rgba(99,102,241,0.3)'
+          }}
+        >
+          <svg style={{ width: '1.25rem', height: '1.25rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Download PDF
+        </button>
+        <button
+          onClick={() => { setStep(0); setGeneratedPaper(null); setForm({ branch: null, semester: null, subject: null, questionTypes: [], difficulty: 'mixed', totalQuestions: 10, totalMarks: 70, examDuration: 180, instructions: '', includeAnswerKey: false }); }}
+          style={{
+            padding: '0.875rem 2rem',
+            background: 'white',
+            color: '#374151',
+            border: '2px solid #e5e7eb',
+            borderRadius: '0.875rem',
+            fontSize: '0.9375rem',
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}
+        >
+          Generate Another
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f8faff 0%, #f5f3ff 50%, #faf5ff 100%)',
+      padding: '2rem 1rem'
+    }}>
+      <div style={{ maxWidth: '42rem', margin: '0 auto' }}>
+
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '4rem',
+            height: '4rem',
+            background: 'linear-gradient(135deg, #6366f1 0%, #9333ea 100%)',
+            borderRadius: '1.25rem',
+            marginBottom: '1rem',
+            boxShadow: '0 10px 25px -5px rgba(99, 102, 241, 0.4)'
+          }}>
+            <svg style={{ width: '2rem', height: '2rem', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h1 style={{ fontSize: '2rem', fontWeight: '800', color: '#111827', marginBottom: '0.5rem' }}>
+            Question Paper Generator
+          </h1>
+          <p style={{ color: '#6b7280', fontSize: '0.9375rem' }}>
+            Generate GTU-style question papers in seconds using AI
+          </p>
+        </div>
+
+        {/* Step Indicator */}
+        {step < 4 && (
+          <StepIndicator steps={steps} current={step} />
+        )}
+
+        {/* Card */}
+        <div className="card" style={{ padding: '2rem' }}>
+          {step === 0 && renderStep0()}
+          {step === 1 && renderStep1()}
+          {step === 2 && renderStep2()}
+          {step === 3 && renderStep3()}
+          {step === 4 && renderResult()}
+        </div>
+
+        {/* Navigation Buttons */}
+        {step < 4 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.25rem' }}>
+            <button
+              onClick={() => setStep(s => Math.max(0, s - 1))}
+              disabled={step === 0}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'white',
+                border: '2px solid #e5e7eb',
+                borderRadius: '0.875rem',
+                fontSize: '0.9375rem',
+                fontWeight: '600',
+                color: step === 0 ? '#d1d5db' : '#374151',
+                cursor: step === 0 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <svg style={{ width: '1.125rem', height: '1.125rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+
+            {step < 3 && (
+              <button
+                onClick={() => setStep(s => s + 1)}
+                disabled={!canNext()}
+                style={{
+                  padding: '0.75rem 1.75rem',
+                  background: canNext()
+                    ? 'linear-gradient(135deg, #6366f1 0%, #9333ea 100%)'
+                    : '#e5e7eb',
+                  border: 'none',
+                  borderRadius: '0.875rem',
+                  fontSize: '0.9375rem',
+                  fontWeight: '600',
+                  color: canNext() ? 'white' : '#9ca3af',
+                  cursor: canNext() ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: canNext() ? '0 4px 12px rgba(99,102,241,0.3)' : 'none'
+                }}
+              >
+                Next
+                <svg style={{ width: '1.125rem', height: '1.125rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <style jsx>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
 }
+
+// ─── SHARED STYLES ─────────────────────────────────────────────────────────────
+const sectionTitle = {
+  fontSize: '1rem',
+  fontWeight: '700',
+  color: '#111827',
+  marginBottom: '1rem',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem'
+};
+
+const labelStyle = {
+  display: 'block',
+  fontSize: '0.875rem',
+  fontWeight: '600',
+  color: '#374151',
+  marginBottom: '0.5rem'
+};

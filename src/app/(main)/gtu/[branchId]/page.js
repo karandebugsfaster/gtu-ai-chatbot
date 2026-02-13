@@ -6,9 +6,9 @@ import { motion } from 'framer-motion';
 import Card from '@/components/ui/Card';
 import Loader from '@/components/ui/Loader';
 
-export default function BranchPage({ params }) {
+export default async function BranchPage({ params }) {
   const router = useRouter();
-  const { branchId } = params;
+  const { branchId } = await params;
   const [branch, setBranch] = useState(null);
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [loading, setLoading] = useState(true);

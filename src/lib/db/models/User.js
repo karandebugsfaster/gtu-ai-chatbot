@@ -82,7 +82,7 @@
 // // Hash password before saving
 // UserSchema.pre('save', async function(next) {
 //   if (!this.isModified('password')) return next();
-  
+
 //   try {
 //     const salt = await bcrypt.genSalt(12);
 //     this.password = await bcrypt.hash(this.password, salt);
@@ -116,11 +116,11 @@
 //   if (!this.otp || !this.otp.code) {
 //     return false;
 //   }
-  
+
 //   if (this.otp.expiresAt < new Date()) {
 //     return false;
 //   }
-  
+
 //   return this.otp.code === candidateOTP;
 // };
 
@@ -209,11 +209,11 @@ const UserSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 /* -------------------- INDEXES -------------------- */
-UserSchema.index({ email: 1 });
+// Note: email has unique: true which already creates an index
 UserSchema.index({ role: 1 });
 UserSchema.index({ "profile.branch": 1, "profile.semester": 1 });
 UserSchema.index({ isVerified: 1 });
@@ -255,5 +255,4 @@ UserSchema.methods.verifyOTP = function (candidateOTP) {
 };
 
 /* -------------------- EXPORT -------------------- */
-export default mongoose.models.User ||
-  mongoose.model("User", UserSchema);
+export default mongoose.models.User || mongoose.model("User", UserSchema);

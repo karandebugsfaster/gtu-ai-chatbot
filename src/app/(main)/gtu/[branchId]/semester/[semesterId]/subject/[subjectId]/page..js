@@ -9,9 +9,9 @@ import Modal from '@/components/ui/Modal';
 import Loader from '@/components/ui/Loader';
 import toast from 'react-hot-toast';
 
-export default function SubjectResourcesPage({ params }) {
+export default async function SubjectResourcesPage({ params }) {
   const router = useRouter();
-  const { branchId, semesterId, subjectId } = params;
+  const { branchId, semesterId, subjectId } = await params;
   const [resources, setResources] = useState(null);
   const [subject, setSubject] = useState(null);
   const [loading, setLoading] = useState(true);
