@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/config/db';
-import User from '@/models/User';
+import connectDB from '@/lib/db/mongodb';
+import User from '@/lib/db/models/User';
 import { sendOTPEmail } from '@/lib/utils/emailService';
 
 export async function POST(request) {
