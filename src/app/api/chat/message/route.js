@@ -4,7 +4,9 @@ import { authOptions } from '@/lib/auth/authOptions';
 import connectDB from '@/lib/db/mongodb';
 import ChatHistory from '@/lib/db/models/ChatHistory';
 import { chatMessageSchema } from '@/lib/utils/validation';
-import { searchRelevantChunks, buildContextFromChunks } from '@/lib/ai/retrieval';
+// import { searchRelevantChunks, buildContextFromChunks } from '@/lib/ai/retrieval';
+import { retrieveRelevantChunks } from '@/lib/ai/retrieval';
+import { generateChatCompletion } from '@/lib/ai/chatCompletion';
 import { generateChatResponse, buildChatMessages, validateResponse } from '@/lib/ai/chatCompletion';
 
 export async function POST(request) {

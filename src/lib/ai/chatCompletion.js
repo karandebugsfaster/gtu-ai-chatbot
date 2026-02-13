@@ -1,128 +1,85 @@
-import openai, { validateOpenAIKey } from './openai.js';
+import groq, { GROQ_MODEL } from './openai';
 
-const DEFAULT_MODEL = 'gpt-3.5-turbo';
-const TEMPERATURE = 0.3; // Low temperature for factual responses
+const SYSTEM_PROMPT = `You are GTU AI, an intelligent assistant specifically designed 
+for Gujarat Technological University (GTU) students. You help with:
+- Explaining concepts from GTU subjects
+- Analyzing previous year questions (PYQs)
+- Helping with exam preparation
+- Answering questions based on uploaded study materials
 
-/**
- * Generate AI response for chat
- */
-export async function generateChatResponse(messages, options = {}) {
-  validateOpenAIKey();
+Always provide accurate, helpful responses. If you're unsure, say so clearly.
+Format your responses with proper structure when needed.`;
 
-  const {
-    model = DEFAULT_MODEL,
-    temperature = TEMPERATURE,
-    maxTokens = 800,
-    stream = false
-  } = options;
-
+export async function generateChatCompletion(messages, context = null) {
   try {
-    const response = await openai.chat.completions.create({
-      model,
-      messages,
-      temperature,
-      max_tokens: maxTokens,
-      stream
+    const systemContent = context
+      ? `${SYSTEM_PROMPT}\n\n--- RELEVANT STUDY MATERIAL ---\n${context}\n--- END OF MATERIAL ---\n\nAnswer based on the above material when relevant.`
+      : SYSTEM_PROMPT;
+
+    const response = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [
+        { role: 'system', content: systemContent },
+        ...messages
+      ],
+      temperature: 0.7,
+      max_tokens: 2048,
+      top_p: 1,
+      stream: false,
     });
 
-    if (stream) {
-      return response; // Return stream object
-    }
+    const content = response.choices[0]?.message?.content;
+    if (!content) throw new Error('Empty response from Groq');
 
-    return {
-      content: response.choices[0].message.content,
-      finishReason: response.choices[0].finish_reason,
-      tokensUsed: {
-        prompt: response.usage.prompt_tokens,
-        completion: response.usage.completion_tokens,
-        total: response.usage.total_tokens
-      },
-      model: response.model
-    };
+    return content;
+
   } catch (error) {
-    console.error('Chat completion error:', error);
-    
-    if (error.code === 'insufficient_quota') {
-      throw new Error('AI service quota exceeded. Please try again later.');
+    console.error('[chatCompletion] Groq error:', error.message);
+
+    // Groq-specific error handling
+    if (error.status === 429) {
+      throw new Error('Rate limit reached. Please wait a moment and try again.');
     }
-    
-    if (error.code === 'context_length_exceeded') {
-      throw new Error('Message too long. Please shorten your question.');
+    if (error.status === 401) {
+      throw new Error('Invalid Groq API key. Please check your configuration.');
     }
-    
-    throw new Error('Failed to generate response');
+    if (error.status === 503) {
+      throw new Error('Groq service temporarily unavailable. Please try again.');
+    }
+
+    throw new Error('Failed to generate response: ' + error.message);
   }
 }
 
-/**
- * Build messages array for context-aware chat
- */
-export function buildChatMessages(userQuery, contextText, chatHistory = []) {
-  const messages = [
-    {
-      role: 'system',
-      content: `You are an AI academic assistant for GTU (Gujarat Technological University) students. Your primary role is to help students understand course material by answering questions based strictly on uploaded textbooks, notes, and study materials.
+// Streaming version (optional - for future use)
+export async function generateChatCompletionStream(messages, context = null, onChunk) {
+  try {
+    const systemContent = context
+      ? `${SYSTEM_PROMPT}\n\n--- RELEVANT STUDY MATERIAL ---\n${context}\n--- END OF MATERIAL ---`
+      : SYSTEM_PROMPT;
 
-KEY RESPONSIBILITIES:
-1. Answer questions ONLY using the provided course material
-2. If information is not in the material, clearly state: "This topic is not covered in the uploaded course material."
-3. Provide clear, educational explanations suitable for engineering students
-4. Cite sources when referencing specific information
-5. Never make up or hallucinate information
+    const stream = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [
+        { role: 'system', content: systemContent },
+        ...messages
+      ],
+      temperature: 0.7,
+      max_tokens: 2048,
+      stream: true,
+    });
 
-RESPONSE GUIDELINES:
-- Be concise but thorough
-- Use simple language and examples when explaining complex topics
-- Break down difficult concepts into understandable parts
-- If asked about topics not in the material, politely decline and suggest the student consult their professor or textbook
-
-Remember: Accuracy is more important than having an answer to everything.`
+    let fullContent = '';
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content || '';
+      fullContent += delta;
+      if (onChunk) onChunk(delta);
     }
-  ];
 
-  // Add recent chat history (last 5 exchanges for context)
-  const recentHistory = chatHistory.slice(-10); // Last 10 messages (5 exchanges)
-  messages.push(...recentHistory);
+    return fullContent;
 
-  // Add current context and query
-  messages.push({
-    role: 'user',
-    content: contextText || userQuery
-  });
-
-  return messages;
-}
-
-/**
- * Validate AI response to ensure it follows guidelines
- */
-export function validateResponse(response, hasContext) {
-  // Check if AI is making up information when no context exists
-  if (!hasContext) {
-    const lowercaseResponse = response.toLowerCase();
-    const disclaimerPhrases = [
-      'not covered',
-      'not available',
-      'no information',
-      'uploaded material',
-      'course material'
-    ];
-
-    const hasDisclaimer = disclaimerPhrases.some(phrase => 
-      lowercaseResponse.includes(phrase)
-    );
-
-    if (!hasDisclaimer) {
-      // AI might be hallucinating
-      return {
-        isValid: false,
-        correctedResponse: "I don't have any uploaded course material related to your question. Please ensure that relevant study materials have been uploaded for your subject, or try asking about topics covered in the available materials."
-      };
-    }
+  } catch (error) {
+    console.error('[chatCompletion] Stream error:', error.message);
+    throw error;
   }
-
-  return {
-    isValid: true,
-    correctedResponse: response
-  };
 }

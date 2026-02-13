@@ -131,8 +131,8 @@ export async function POST(request) {
 }
 
 // Required for file uploads in Next.js
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// export const config = {
+//   api: {
+//     bodyParser: false,
+//   },
+// };
