@@ -1,39 +1,40 @@
-import { generateEmbedding, cosineSimilarity } from './embeddings';
 import connectDB from '@/lib/db/mongodb';
-
-// Dynamic import for the model to avoid server/client issues
-async function getEmbeddingChunkModel() {
-  const { default: EmbeddingChunk } = await import('@/lib/db/models/EmbeddingChunk');
-  return EmbeddingChunk;
-}
 
 export async function retrieveRelevantChunks(query, context = {}, topK = 5) {
   try {
     await connectDB();
-    const EmbeddingChunk = await getEmbeddingChunkModel();
 
-    // Get query embedding
-    const queryEmbedding = await generateEmbedding(query);
+    const EmbeddingChunk = (await import('@/lib/db/models/EmbeddingChunk')).default;
 
-    // Build filter
+    // Build filter from context
     const filter = {};
     if (context.branch)   filter.branch   = context.branch;
     if (context.semester) filter.semester = Number(context.semester);
     if (context.subject)  filter.subject  = { $regex: context.subject, $options: 'i' };
 
-    // Fetch candidates (limit to 200 for performance)
-    const chunks = await EmbeddingChunk.find(filter).limit(200).lean();
+    // ✅ Keyword-based search — extract important words from query
+    const keywords = extractKeywords(query);
+
+    if (keywords.length > 0) {
+      filter.$or = keywords.map(kw => ({
+        text: { $regex: kw, $options: 'i' }
+      }));
+    }
+
+    const chunks = await EmbeddingChunk
+      .find(filter)
+      .limit(topK)
+      .lean();
 
     if (chunks.length === 0) return [];
 
-    // Score all chunks
+    // Score by keyword matches
     const scored = chunks
-      .filter(chunk => chunk.embedding?.length > 0)
       .map(chunk => ({
         ...chunk,
-        score: cosineSimilarity(queryEmbedding, chunk.embedding)
+        score: scoreChunk(chunk.text, keywords),
       }))
-      .filter(chunk => chunk.score > 0.3)   // minimum relevance threshold
+      .filter(c => c.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, topK);
 
@@ -41,15 +42,45 @@ export async function retrieveRelevantChunks(query, context = {}, topK = 5) {
       text:  chunk.text,
       score: chunk.score,
       source: {
-        title:       chunk.title      || chunk.documentTitle || 'Unknown',
-        subject:     chunk.subject    || '',
-        pageNumber:  chunk.pageNumber || null,
-        chunkIndex:  chunk.chunkIndex || 0,
+        title:      chunk.documentTitle || chunk.title || 'Study Material',
+        subject:    chunk.subject       || '',
+        pageNumber: chunk.pageNumber    || null,
       }
     }));
 
   } catch (error) {
-    console.error('[retrieval] Error:', error.message);
-    return []; // graceful fallback — chat still works without context
+    // ✅ Never crash the chat — just return empty
+    console.warn('[retrieval] Failed (non-fatal):', error.message);
+    return [];
   }
+}
+
+// ── Extract meaningful keywords from query ────────────────────────────────────
+function extractKeywords(query) {
+  const stopWords = new Set([
+    'what', 'is', 'are', 'the', 'a', 'an', 'in', 'on', 'at', 'to', 'for',
+    'of', 'and', 'or', 'but', 'how', 'why', 'when', 'where', 'who', 'which',
+    'explain', 'define', 'describe', 'tell', 'me', 'about', 'can', 'you',
+    'please', 'with', 'it', 'its', 'this', 'that', 'do', 'does', 'did',
+    'give', 'write', 'list', 'difference', 'between', 'example'
+  ]);
+
+  return query
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 3 && !stopWords.has(word))
+    .slice(0, 6); // top 6 keywords
+}
+
+// ── Score a chunk based on keyword frequency ──────────────────────────────────
+function scoreChunk(text, keywords) {
+  if (!text || keywords.length === 0) return 0;
+  const lower = text.toLowerCase();
+  let score = 0;
+  keywords.forEach(kw => {
+    const matches = (lower.match(new RegExp(kw, 'gi')) || []).length;
+    score += matches;
+  });
+  return score;
 }
