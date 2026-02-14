@@ -129,7 +129,7 @@ function ChatContent() {
             isAuthenticated={!!session}
           />
         ) : (
-          <div className="max-w-3xl mx-auto px-4">
+          <div className="max-w-8xl mx-auto px-4">
             {messages.map((msg, i) => (
               <div key={i} className="message-group">
                 <ChatMessage message={msg} isLast={i === messages.length - 1} />

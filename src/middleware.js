@@ -1,49 +1,56 @@
-import { withAuth } from 'next-auth/middleware';
+import { getToken } from 'next-auth/jwt';
 import { NextResponse } from 'next/server';
 
-export default withAuth(
-  function middleware(req) {
-    const token = req.nextauth.token;
-    const isAdmin = token?.role === 'admin';
-    const isAdminRoute = req.nextUrl.pathname.startsWith('/admin');
+export async function middleware(request) {
+  const { pathname } = request.nextUrl;
 
-    // Protect admin routes
-    if (isAdminRoute && !isAdmin) {
-      return NextResponse.redirect(new URL('/chat', req.url));
+  const token = await getToken({
+    req:    request,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  // ── /admin pages — must be logged in AND be admin ──────────────────────────
+  if (pathname.startsWith('/admin')) {
+    if (!token) {
+      const url = new URL('/signin', request.url);
+      url.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(url);
     }
-
+    if (token.role !== 'admin') {
+      return NextResponse.redirect(new URL('/chat', request.url));
+    }
     return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ req, token }) => {
-        // Allow access to these routes without authentication
-        const publicRoutes = ['/chat', '/gtu', '/qpg'];
-        const isPublicRoute = publicRoutes.some(route => 
-          req.nextUrl.pathname.startsWith(route)
-        );
-
-        // Admin routes require authentication
-        if (req.nextUrl.pathname.startsWith('/admin')) {
-          return !!token;
-        }
-
-        // Public routes don't require auth
-        if (isPublicRoute) {
-          return true;
-        }
-
-        return !!token;
-      },
-    },
   }
-);
+
+  // ── /api/admin routes — must be admin ─────────────────────────────────────
+  if (pathname.startsWith('/api/admin')) {
+    if (!token) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    if (token.role !== 'admin') {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
+    return NextResponse.next();
+  }
+
+  // ── /signin /signup — redirect to chat if already logged in ───────────────
+  if (pathname.startsWith('/signin') || pathname.startsWith('/signup')) {
+    if (token) {
+      return NextResponse.redirect(new URL('/chat', request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // ── Everything else (chat, gtu, qpg, api/chat, api/gtu...) ────────────────
+  // ✅ Allow ALL users through — API routes handle their own auth internally
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [
     '/admin/:path*',
-    '/chat/:path*',
-    '/gtu/:path*',
-    '/qpg/:path*',
+    '/api/admin/:path*',
+    '/signin',
+    '/signup',
   ],
 };
