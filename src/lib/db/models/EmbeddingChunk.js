@@ -1,44 +1,27 @@
 import mongoose from 'mongoose';
 
 const embeddingChunkSchema = new mongoose.Schema({
-  documentId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Document',
-    required: true,
-    index: true
-  },
-  text: {
-    type: String,
-    required: true
-  },
-  embedding: {
-    type: [Number],
-    required: true
-  },
-  metadata: {
-    pageNumber: Number,
-    chunkIndex: Number,
-    startChar: Number,
-    endChar: Number
-  },
-  subject: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Subject',
-    index: true
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    index: true
-  }
+  documentId:    { type: mongoose.Schema.Types.ObjectId, ref: 'Document', required: true },
+  documentTitle: { type: String,  default: '' },
+  text:          { type: String,  required: true },
+  embedding:     { type: [Number] },   // ✅ optional, no default, no required
+  branch:        { type: String  },
+  semester:      { type: Number  },
+  subject:       { type: String  },
+  type:          { type: String  },
+  chunkIndex:    { type: Number,  default: 0 },
+  totalChunks:   { type: Number,  default: 0 },
 }, {
-  timestamps: false
+  timestamps: true,
+  strict: true,
 });
 
-// Compound index for efficient retrieval
-embeddingChunkSchema.index({ documentId: 1, 'metadata.pageNumber': 1 });
-embeddingChunkSchema.index({ subject: 1, createdAt: -1 });
+embeddingChunkSchema.index({ branch: 1, semester: 1 });
+embeddingChunkSchema.index({ documentId: 1, chunkIndex: 1 });
+embeddingChunkSchema.index({ subject: 1 });
 
-const EmbeddingChunk = mongoose.models.EmbeddingChunk || mongoose.model('EmbeddingChunk', embeddingChunkSchema);
+// ✅ Delete cached model to avoid "Cannot overwrite model" error
+delete mongoose.connection.models['EmbeddingChunk'];
 
-export default EmbeddingChunk;
+export default mongoose.models.EmbeddingChunk ||
+  mongoose.model('EmbeddingChunk', embeddingChunkSchema);
