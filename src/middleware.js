@@ -9,7 +9,7 @@ export async function middleware(request) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  // ── /admin pages — must be logged in AND be admin ──────────────────────────
+  // ── Admin PAGES only ───────────────────────────────────────────────────────
   if (pathname.startsWith('/admin')) {
     if (!token) {
       const url = new URL('/signin', request.url);
@@ -22,32 +22,34 @@ export async function middleware(request) {
     return NextResponse.next();
   }
 
-  // ── /api/admin routes — must be admin ─────────────────────────────────────
+  // ── Admin API routes ───────────────────────────────────────────────────────
   if (pathname.startsWith('/api/admin')) {
     if (!token) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
     if (token.role !== 'admin') {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: 'Forbidden' },
+        { status: 403 }
+      );
     }
     return NextResponse.next();
   }
 
-  // ── /signin /signup — redirect to chat if already logged in ───────────────
-  if (pathname.startsWith('/signin') || pathname.startsWith('/signup')) {
-    if (token) {
-      return NextResponse.redirect(new URL('/chat', request.url));
-    }
-    return NextResponse.next();
+  // ── Auth redirect — already logged in ─────────────────────────────────────
+  if ((pathname === '/signin' || pathname === '/signup') && token) {
+    return NextResponse.redirect(new URL('/chat', request.url));
   }
 
-  // ── Everything else (chat, gtu, qpg, api/chat, api/gtu...) ────────────────
-  // ✅ Allow ALL users through — API routes handle their own auth internally
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
+    // ✅ ONLY these — NO /chat, NO /api/chat, NO /gtu, NO /qpg
     '/admin/:path*',
     '/api/admin/:path*',
     '/signin',
