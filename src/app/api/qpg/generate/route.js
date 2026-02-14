@@ -133,7 +133,7 @@ async function generatePatternBasedQP(pyqs, subject, config, userId, includeAnsw
     ],
   };
 
-  const generatedSections = [];
+  let generatedSections = [];
 
   for (const section of pattern.sections) {
     const sectionQuestions = [];
