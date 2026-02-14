@@ -394,3 +394,124 @@ input[type="radio"] {
     opacity: 1 !important;
   }
 }
+
+/* Fix desktop sidebar + main layout gap */
+@media (min-width: 768px) {
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 16rem;
+    z-index: 30;
+  }
+  
+  /* .main-content {
+    display: flex;
+    justify-content: center;
+  } */
+
+  /* Chat conversation column — centered with max width */
+  .chat-messages-inner,
+  .chat-input-inner {
+    max-width: 48rem;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    padding: 0 1rem;
+  }
+}
+
+/* Mobile: full width */
+@media (max-width: 767px) {
+  .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CHAT MESSAGE STYLES — add to globals.css
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Typing dots animation ──────────────────────────────────── */
+@keyframes typingDot {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+
+/* ── Show copy button on message hover ──────────────────────── */
+.message-group:hover .copy-btn {
+  opacity: 1 !important;
+}
+
+/* ── AI Markdown content resets ─────────────────────────────── */
+.ai-markdown {
+  color: #1a1a2e;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.ai-markdown p:last-child {
+  margin-bottom: 0 !important;
+}
+
+.ai-markdown > *:first-child {
+  margin-top: 0 !important;
+}
+
+.ai-markdown > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* ── User bubble text selection color ───────────────────────── */
+.user-bubble ::selection {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+/* ── AI bubble hover effect ─────────────────────────────────── */
+.ai-bubble {
+  transition: box-shadow 0.2s ease;
+}
+
+.ai-bubble:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ── Copy button hover ──────────────────────────────────────── */
+.copy-btn:hover {
+  background: #f5f3ff !important;
+  border-color: #e0e7ff !important;
+  color: #6366f1 !important;
+  transform: scale(1.05);
+}
+
+/* ── Scrollbar for chat messages area ───────────────────────── */
+.chat-messages-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #e5e7eb transparent;
+}
+
+.chat-messages-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.chat-messages-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-messages-scroll::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 10px;
+}
+
+.chat-messages-scroll::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db;
+}

@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import ChatMessage from '@/components/chat/ChatMessage';
-import ChatInput from '@/components/chat/InputBox';
-import WelcomeScreen from '@/components/chat/WelcomeScreen';
-import toast from 'react-hot-toast';
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import ChatMessage, { TypingIndicator } from "@/components/chat/ChatMessage";
+import ChatInput from "@/components/chat/InputBox";
+import WelcomeScreen from "@/components/chat/WelcomeScreen";
+import toast from "react-hot-toast";
 
 function ChatContent() {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session');
+  const sessionId = searchParams.get("session");
 
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -31,20 +31,20 @@ function ChatContent() {
   }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const loadChatHistory = async (sid) => {
     try {
       const response = await fetch(`/api/chat/history?sessionId=${sid}`);
       const data = await response.json();
-      
+
       if (data.success && data.chat) {
         setMessages(data.chat.messages || []);
         setCurrentSessionId(sid);
       }
     } catch (error) {
-      console.error('Error loading chat history:', error);
+      console.error("Error loading chat history:", error);
     }
   };
 
@@ -52,18 +52,18 @@ function ChatContent() {
     if (!message.trim()) return;
 
     if (!session) {
-      toast.error('Please sign in to use the chat feature');
-      router.push('/signin');
+      toast.error("Please sign in to use the chat feature");
+      router.push("/signin");
       return;
     }
 
     let sid = currentSessionId;
     if (!sid) {
       try {
-        const response = await fetch('/api/chat/new-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ context })
+        const response = await fetch("/api/chat/new-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ context }),
         });
         const data = await response.json();
         if (data.success) {
@@ -71,49 +71,49 @@ function ChatContent() {
           setCurrentSessionId(sid);
         }
       } catch (error) {
-        toast.error('Failed to create chat session');
+        toast.error("Failed to create chat session");
         return;
       }
     }
 
     const userMessage = {
-      role: 'user',
+      role: "user",
       content: message,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setLoading(true);
 
     try {
-      const response = await fetch('/api/chat/message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/chat/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: sid,
           message,
-          context
-        })
+          context,
+        }),
       });
 
       const data = await response.json();
 
       if (data.success) {
         const assistantMessage = {
-          role: 'assistant',
+          role: "assistant",
           content: data.response,
           timestamp: new Date(),
           metadata: {
             sources: data.sources || [],
-            hasContext: data.metadata?.hasContext || false
-          }
+            hasContext: data.metadata?.hasContext || false,
+          },
         };
-        setMessages(prev => [...prev, assistantMessage]);
+        setMessages((prev) => [...prev, assistantMessage]);
       } else {
-        toast.error(data.error || 'Failed to send message');
+        toast.error(data.error || "Failed to send message");
       }
     } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+      console.error("Error sending message:", error);
+      toast.error("Failed to send message");
     } finally {
       setLoading(false);
     }
@@ -122,41 +122,58 @@ function ChatContent() {
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Messages Area */}
-      <div 
-        ref={scrollAreaRef}
-        className="flex-1 overflow-y-auto"
-      >
+      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
-          <WelcomeScreen onSendMessage={handleSendMessage} isAuthenticated={!!session} />
+          <WelcomeScreen
+            onSendMessage={handleSendMessage}
+            isAuthenticated={!!session}
+          />
         ) : (
           <div className="max-w-3xl mx-auto px-4">
-            {messages.map((message, index) => (
-              <ChatMessage
-                key={index}
-                message={message}
-                isLast={index === messages.length - 1}
-              />
+            {messages.map((msg, i) => (
+              <div key={i} className="message-group">
+                <ChatMessage message={msg} isLast={i === messages.length - 1} />
+              </div>
             ))}
-
+            {/* // Show while loading: */}
+            {loading && <TypingIndicator />}
             {loading && (
               <div className="py-8">
                 <div className="flex items-start gap-4">
                   <div className="w-7 h-7 rounded-sm bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    <svg
+                      className="w-4 h-4 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
                     </svg>
                   </div>
                   <div className="flex-1 pt-1">
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "150ms" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "300ms" }}
+                      ></div>
                     </div>
                   </div>
                 </div>
               </div>
             )}
-
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -170,7 +187,13 @@ function ChatContent() {
 
 export default function ChatPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-full">
+          Loading...
+        </div>
+      }
+    >
       <ChatContent />
     </Suspense>
   );

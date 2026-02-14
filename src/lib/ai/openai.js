@@ -18,4 +18,4 @@ export default groq;
 // 'mixtral-8x7b-32768'    — long context (32k tokens)
 // 'gemma2-9b-it'          — Google's Gemma 2
 // 'llama-3.1-8b-instant'  — fastest
-export const GROQ_MODEL = 'llama3-8b-8192';
+export const GROQ_MODEL = 'llama-3.3-70b-versatile'; // best quality

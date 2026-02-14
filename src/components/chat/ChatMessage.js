@@ -1,184 +1,435 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 
+// ─── CHAT MESSAGE COMPONENT ────────────────────────────────────────────────────
 export default function ChatMessage({ message, isLast }) {
-  const [showSources, setShowSources] = useState(false);
-  const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
-  const sources = message.metadata?.sources || [];
+  const [copied, setCopied] = useState(false);
+  const [visible, setVisible] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(message.content);
+  useEffect(() => {
+    // Slight stagger for smooth entrance
+    const t = setTimeout(() => setVisible(true), 20);
+    return () => clearTimeout(t);
+  }, []);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(message.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div style={{
-      padding: '2rem 0',
-      background: isUser ? 'white' : '#f9fafb',
-      borderBottom: '1px solid #f3f4f6'
-    }}>
-      <div style={{ 
-        maxWidth: '48rem',
-        margin: '0 auto',
-        padding: '0 1rem'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', position: 'relative' }}>
-          {/* Avatar */}
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: isUser ? 'flex-end' : 'flex-start',
+        padding: '0.85rem 1.5rem',
+        opacity: visible ? 1 : 0,
+        transform: visible
+          ? 'translateY(0)'
+          : isUser ? 'translateY(8px)' : 'translateY(8px)',
+        transition: 'opacity 0.25s ease, transform 0.25s ease',
+        maxWidth: '100%',
+      }}
+    >
+      {/* Avatar + name row — only for AI */}
+      {!isUser && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          marginBottom: '0.5rem',
+          paddingLeft: '0.25rem',
+        }}>
+          {/* AI Avatar */}
           <div style={{
-            width: '2rem',
-            height: '2rem',
+            width: '1.75rem',
+            height: '1.75rem',
             borderRadius: '0.5rem',
+            background: 'linear-gradient(135deg, #6366f1 0%, #9333ea 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            background: isUser 
-              ? '#111827' 
-              : 'linear-gradient(135deg, #6366f1 0%, #9333ea 100%)',
-            color: 'white',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+            boxShadow: '0 2px 8px rgba(99,102,241,0.3)',
           }}>
-            {isUser ? (
-              <svg style={{ width: '1.125rem', height: '1.125rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            ) : (
-              <svg style={{ width: '1.125rem', height: '1.125rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            )}
+            <svg style={{ width: '1rem', height: '1rem', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
           </div>
-
-          {/* Message Content */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontSize: '0.9375rem',
-              lineHeight: '1.75',
-              color: '#111827',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word'
-            }}>
-              {message.content}
-            </div>
-
-            {/* Sources */}
-            {!isUser && sources.length > 0 && (
-              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
-                <button
-                  onClick={() => setShowSources(!showSources)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.8125rem',
-                    color: '#6b7280',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '0.25rem 0',
-                    transition: 'color 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = '#111827'}
-                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
-                >
-                  <svg style={{ width: '1rem', height: '1rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
-                  <span>{sources.length} {sources.length === 1 ? 'source' : 'sources'}</span>
-                  <svg 
-                    style={{ 
-                      width: '1rem', 
-                      height: '1rem',
-                      transform: showSources ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.2s ease'
-                    }} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {showSources && (
-                  <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {sources.map((source, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          fontSize: '0.8125rem',
-                          background: 'white',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '0.5rem',
-                          padding: '0.75rem'
-                        }}
-                      >
-                        <div style={{ fontWeight: '600', color: '#111827', marginBottom: '0.25rem' }}>
-                          {source.title}
-                        </div>
-                        {source.pageNumber && (
-                          <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                            Page {source.pageNumber}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Copy Button */}
-          <button
-            onClick={handleCopy}
-            style={{
-              padding: '0.375rem',
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '0.375rem',
-              cursor: 'pointer',
-              color: '#9ca3af',
-              transition: 'all 0.2s ease',
-              opacity: 0,
-              position: 'absolute',
-              right: 0,
-              top: 0
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#f3f4f6';
-              e.currentTarget.style.color = '#111827';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = '#9ca3af';
-            }}
-            className="copy-button"
-          >
-            {copied ? (
-              <svg style={{ width: '1rem', height: '1rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              <svg style={{ width: '1rem', height: '1rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            )}
-          </button>
+          <span style={{
+            fontSize: '0.75rem',
+            fontWeight: '600',
+            color: '#6b7280',
+            letterSpacing: '0.02em',
+          }}>
+            GTU AI
+          </span>
         </div>
+      )}
+
+      {/* Message bubble + copy button row */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-end',
+        gap: '0.5rem',
+        flexDirection: isUser ? 'row-reverse' : 'row',
+        maxWidth: 'min(85%, 680px)',
+        width: '100%',
+        // justifyContent: isUser ? 'flex-end' : 'flex-start',
+      }}>
+
+        {/* Bubble */}
+        <div
+          className={isUser ? 'user-bubble' : 'ai-bubble'}
+          style={{
+            padding: isUser ? '0.75rem 1rem' : '1rem 1.125rem',
+            borderRadius: isUser
+              ? '1.125rem 1.125rem 0.25rem 1.125rem'
+              : '0.25rem 1.125rem 1.125rem 1.125rem',
+            background: isUser
+              ? 'linear-gradient(135deg, #6366f1 0%, #9333ea 100%)'
+              : 'white',
+            color:  isUser ? 'white' : '#1a1a2e',
+            fontSize: '0.9375rem',
+            lineHeight: '1.7',
+            boxShadow: isUser
+              ? '0 4px 15px rgba(99,102,241,0.25)'
+              : '0 2px 12px rgba(0,0,0,0.08)',
+            border: isUser ? 'none' : '1px solid #f0f0f5',
+            wordBreak: 'break-word',
+            maxWidth: '100%',
+            position: 'relative',
+          }}
+        >
+          {isUser ? (
+            // User message — plain text
+            <p style={{ margin: 0, fontWeight: '450' }}>
+              {message.content}
+            </p>
+          ) : (
+            // AI message — markdown rendered
+            <div className="ai-markdown">
+              <ReactMarkdown
+                components={{
+                  p: ({ children }) => (
+                    <p style={{ margin: '0 0 0.625rem 0' }}>{children}</p>
+                  ),
+                  p_last: ({ children }) => (
+                    <p style={{ margin: 0 }}>{children}</p>
+                  ),
+                  strong: ({ children }) => (
+                    <strong style={{ fontWeight: '700', color: '#111827' }}>{children}</strong>
+                  ),
+                  em: ({ children }) => (
+                    <em style={{ color: '#6366f1' }}>{children}</em>
+                  ),
+                  code: ({ inline, children }) =>
+                    inline ? (
+                      <code style={{
+                        background: '#f3f4f6',
+                        padding: '0.125rem 0.375rem',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.875em',
+                        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                        color: '#6366f1',
+                        border: '1px solid #e5e7eb',
+                      }}>
+                        {children}
+                      </code>
+                    ) : (
+                      <pre style={{
+                        background: '#0f0f17',
+                        padding: '1rem',
+                        borderRadius: '0.75rem',
+                        overflow: 'auto',
+                        margin: '0.75rem 0',
+                        border: '1px solid #1e1e2e',
+                      }}>
+                        <code style={{
+                          fontSize: '0.8125rem',
+                          fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                          color: '#e2e8f0',
+                          display: 'block',
+                          lineHeight: '1.6',
+                        }}>
+                          {children}
+                        </code>
+                      </pre>
+                    ),
+                  ul: ({ children }) => (
+                    <ul style={{
+                      paddingLeft: '1.25rem',
+                      margin: '0.5rem 0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.25rem',
+                    }}>
+                      {children}
+                    </ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol style={{
+                      paddingLeft: '1.5rem',
+                      margin: '0.5rem 0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.25rem',
+                    }}>
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => (
+                    <li style={{ lineHeight: '1.6' }}>{children}</li>
+                  ),
+                  h1: ({ children }) => (
+                    <h1 style={{ fontSize: '1.125rem', fontWeight: '700', margin: '0.75rem 0 0.375rem', color: '#111827' }}>{children}</h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 style={{ fontSize: '1rem', fontWeight: '700', margin: '0.75rem 0 0.375rem', color: '#111827' }}>{children}</h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 style={{ fontSize: '0.9375rem', fontWeight: '600', margin: '0.625rem 0 0.25rem', color: '#374151' }}>{children}</h3>
+                  ),
+                  blockquote: ({ children }) => (
+                    <blockquote style={{
+                      borderLeft: '3px solid #6366f1',
+                      paddingLeft: '0.875rem',
+                      margin: '0.625rem 0',
+                      color: '#4b5563',
+                      fontStyle: 'italic',
+                    }}>
+                      {children}
+                    </blockquote>
+                  ),
+                  hr: () => (
+                    <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '0.75rem 0' }} />
+                  ),
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          )}
+        </div>
+
+        {/* Copy button */}
+        <button
+          onClick={handleCopy}
+          className="copy-btn"
+          title="Copy"
+          style={{
+            flexShrink: 0,
+            width: '1.875rem',
+            height: '1.875rem',
+            borderRadius: '0.5rem',
+            border: '1px solid #e5e7eb',
+            background: 'white',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: copied ? '#10b981' : '#9ca3af',
+            transition: 'all 0.15s ease',
+            marginBottom: '0.25rem',
+            opacity: 0,
+          }}
+        >
+          {copied ? (
+            <svg style={{ width: '0.875rem', height: '0.875rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <svg style={{ width: '0.875rem', height: '0.875rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          )}
+        </button>
       </div>
 
-      <style jsx>{`
-        .copy-button {
-          opacity: 0;
-        }
-        div:hover .copy-button {
-          opacity: 1;
-        }
-      `}</style>
+      {/* Sources */}
+      {!isUser && message.sources?.length > 0 && (
+        <SourcesPanel sources={message.sources} />
+      )}
+
+      {/* Timestamp */}
+      <div style={{
+        fontSize: '0.6875rem',
+        color: '#9ca3af',
+        marginTop: '0.375rem',
+        paddingLeft: isUser ? 0 : '0.25rem',
+        paddingRight: isUser ? '0.25rem' : 0,
+      }}>
+        {formatTime(message.timestamp)}
+      </div>
     </div>
   );
+}
+
+// ─── SOURCES PANEL ─────────────────────────────────────────────────────────────
+function SourcesPanel({ sources }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div style={{
+      marginTop: '0.5rem',
+      paddingLeft: '0.25rem',
+      maxWidth: 'min(85%, 680px)',
+    }}>
+      <button
+        onClick={() => setOpen(p => !p)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.375rem',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '0.75rem',
+          fontWeight: '600',
+          color: '#6366f1',
+          padding: '0.25rem 0',
+          transition: 'opacity 0.15s ease',
+        }}
+      >
+        <svg
+          style={{
+            width: '0.875rem', height: '0.875rem',
+            transition: 'transform 0.2s ease',
+            transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
+          }}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        {sources.length} source{sources.length > 1 ? 's' : ''}
+      </button>
+
+      {open && (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.375rem',
+          marginTop: '0.375rem',
+        }}>
+          {sources.map((src, i) => (
+            <div key={i} style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.625rem',
+              padding: '0.5rem 0.75rem',
+              background: 'white',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.625rem',
+              fontSize: '0.8125rem',
+            }}>
+              <div style={{
+                width: '1.5rem', height: '1.5rem',
+                background: '#f5f3ff',
+                borderRadius: '0.375rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.75rem', flexShrink: 0,
+              }}>
+                📄
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: '600', color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {src.title}
+                </div>
+                {src.subject && (
+                  <div style={{ fontSize: '0.6875rem', color: '#6b7280' }}>{src.subject}</div>
+                )}
+              </div>
+              {src.relevance && (
+                <span style={{
+                  fontSize: '0.6875rem', fontWeight: '700',
+                  color: src.relevance > 80 ? '#10b981' : src.relevance > 60 ? '#f59e0b' : '#6b7280',
+                  background: src.relevance > 80 ? '#f0fdf4' : src.relevance > 60 ? '#fffbeb' : '#f9fafb',
+                  padding: '0.125rem 0.5rem',
+                  borderRadius: '2rem',
+                  flexShrink: 0,
+                }}>
+                  {src.relevance}%
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── TYPING INDICATOR ──────────────────────────────────────────────────────────
+export function TypingIndicator() {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      padding: '0.25rem 1.5rem',
+    }}>
+      {/* AI label */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '0.5rem',
+        marginBottom: '0.5rem', paddingLeft: '0.25rem',
+      }}>
+        <div style={{
+          width: '1.75rem', height: '1.75rem',
+          borderRadius: '0.5rem',
+          background: 'linear-gradient(135deg, #6366f1 0%, #9333ea 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(99,102,241,0.3)',
+        }}>
+          <svg style={{ width: '1rem', height: '1rem', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280' }}>GTU AI</span>
+      </div>
+
+      {/* Dots */}
+      <div style={{
+        padding: '0.875rem 1.125rem',
+        background: 'white',
+        borderRadius: '0.25rem 1.125rem 1.125rem 1.125rem',
+        border: '1px solid #f0f0f5',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.375rem',
+      }}>
+        {[0, 1, 2].map(i => (
+          <div
+            key={i}
+            style={{
+              width: '0.4375rem',
+              height: '0.4375rem',
+              borderRadius: '50%',
+              background: '#6366f1',
+              animation: `typingDot 1.2s ease-in-out ${i * 0.2}s infinite`,
+              opacity: 0.4,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── HELPERS ───────────────────────────────────────────────────────────────────
+function formatTime(timestamp) {
+  if (!timestamp) return '';
+  const d = new Date(timestamp);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  return isToday
+    ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
