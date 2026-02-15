@@ -12,10 +12,9 @@ export default function Navbar({ onMenuClick }) {
   const pathname = usePathname();
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const handleSignOut = async () => {
-    await signOut({ redirect: false });
-    router.push("/signin");
-  };
+const handleSignOut = async () => {
+  await signOut({ callbackUrl: "/signin" });
+};
 
   return (
     <nav
