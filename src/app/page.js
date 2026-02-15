@@ -1,41 +1,45 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { useSession } from 'next-auth/react';
-import Link from 'next/link';
+import { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 export default function HomePage() {
   const { data: session } = useSession();
-  const [scrollY, setScrollY]       = useState(0);
-  const [mousePos, setMousePos]     = useState({ x: 0, y: 0 });
-  const [visible, setVisible]       = useState({});
+  const [scrollY, setScrollY] = useState(0);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [visible, setVisible] = useState({});
   const heroRef = useRef(null);
 
   useEffect(() => {
     const onScroll = () => setScrollY(window.scrollY);
-    const onMouse  = (e) => setMousePos({ x: e.clientX, y: e.clientY });
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('mousemove', onMouse, { passive: true });
+    const onMouse = (e) => setMousePos({ x: e.clientX, y: e.clientY });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("mousemove", onMouse, { passive: true });
 
     // Intersection observer for scroll reveals
     const observer = new IntersectionObserver(
-      (entries) => entries.forEach(e => {
-        if (e.isIntersecting) setVisible(p => ({ ...p, [e.target.dataset.reveal]: true }));
-      }),
-      { threshold: 0.15 }
+      (entries) =>
+        entries.forEach((e) => {
+          if (e.isIntersecting)
+            setVisible((p) => ({ ...p, [e.target.dataset.reveal]: true }));
+        }),
+      { threshold: 0.15 },
     );
-    document.querySelectorAll('[data-reveal]').forEach(el => observer.observe(el));
+    document
+      .querySelectorAll("[data-reveal]")
+      .forEach((el) => observer.observe(el));
 
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('mousemove', onMouse);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("mousemove", onMouse);
       observer.disconnect();
     };
   }, []);
 
   const revealed = (key, delay = 0) => ({
-    opacity:    visible[key] ? 1 : 0,
-    transform:  visible[key] ? 'translateY(0)' : 'translateY(40px)',
+    opacity: visible[key] ? 1 : 0,
+    transform: visible[key] ? "translateY(0)" : "translateY(40px)",
     transition: `opacity 0.8s ease ${delay}s, transform 0.8s ease ${delay}s`,
   });
 
@@ -485,30 +489,50 @@ export default function HomePage() {
           .steps::before { left: 1.5rem; }
           .footer { flex-direction: column; text-align: center; }
           .hero-preview { display: none; }
+
+          
+  .how-it-works-grid {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
+  }
+  .steps::before { left: 1.5rem; }
         }
       `}</style>
 
       {/* Cursor glow */}
-      <div className="cursor-glow" style={{ left: mousePos.x, top: mousePos.y }} />
+      <div
+        className="cursor-glow"
+        style={{ left: mousePos.x, top: mousePos.y }}
+      />
 
       {/* Navbar */}
-      <nav className={`nav ${scrollY > 40 ? 'scrolled' : ''}`}>
+      <nav className={`nav ${scrollY > 40 ? "scrolled" : ""}`}>
         <Link href="/" className="nav-logo">
           <div className="nav-logo-badge">⚡</div>
           GTU AI
         </Link>
         <div className="nav-links">
-          <Link href="#features" className="nav-link">Features</Link>
-          <Link href="#how-it-works" className="nav-link">How it works</Link>
-          <Link href="/pricing" className="nav-link">Pricing</Link>
-          {session?.user?.role === 'admin' && (
-            <Link href="/admin/dashboard" className="nav-link" style={{ color: '#c9a84c' }}>
+          <Link href="#features" className="nav-link">
+            Features
+          </Link>
+          <Link href="#how-it-works" className="nav-link">
+            How it works
+          </Link>
+          <Link href="/pricing" className="nav-link">
+            Pricing
+          </Link>
+          {session?.user?.role === "admin" && (
+            <Link
+              href="/admin/dashboard"
+              className="nav-link"
+              style={{ color: "#c9a84c" }}
+            >
               ⚙️ Dashboard
             </Link>
           )}
         </div>
-        <Link href={session ? '/chat' : '/signin'} className="nav-cta">
-          {session ? 'Open Chat →' : 'Get Started'}
+        <Link href={session ? "/chat" : "/signin"} className="nav-cta">
+          {session ? "Open Chat →" : "Get Started"}
         </Link>
       </nav>
 
@@ -523,17 +547,19 @@ export default function HomePage() {
         </div>
 
         <h1 className="hero-title">
-          Study Smarter.<br />
+          Study Smarter.
+          <br />
           <span className="hero-title-accent">Rank Higher.</span>
         </h1>
 
         <p className="hero-sub">
-          Your AI study companion trained on GTU syllabus, past papers, and textbooks.
-          Get instant answers, generate question papers, and ace your exams.
+          Your AI study companion trained on GTU syllabus, past papers, and
+          textbooks. Get instant answers, generate question papers, and ace your
+          exams.
         </p>
 
         <div className="hero-actions">
-          <Link href={session ? '/chat' : '/signup'} className="btn-primary">
+          <Link href={session ? "/chat" : "/signup"} className="btn-primary">
             ⚡ Start Studying Free
           </Link>
           <Link href="#how-it-works" className="btn-secondary">
@@ -545,9 +571,9 @@ export default function HomePage() {
         <div className="hero-preview">
           <div className="preview-card">
             <div className="preview-bar">
-              <div className="preview-dot" style={{ background: '#ff5f57' }} />
-              <div className="preview-dot" style={{ background: '#febc2e' }} />
-              <div className="preview-dot" style={{ background: '#28c840' }} />
+              <div className="preview-dot" style={{ background: "#ff5f57" }} />
+              <div className="preview-dot" style={{ background: "#febc2e" }} />
+              <div className="preview-dot" style={{ background: "#28c840" }} />
             </div>
             <div className="preview-messages">
               <div className="preview-bubble-user">
@@ -556,13 +582,29 @@ export default function HomePage() {
               <div className="preview-msg-ai">
                 <div className="preview-avatar">AI</div>
                 <div className="preview-bubble-ai">
-                  Based on the last 5 years of GTU papers, the most frequently asked topics are:
-                  <strong style={{ color: '#c9a84c', display: 'block', marginTop: '0.5rem' }}>
+                  Based on the last 5 years of GTU papers, the most frequently
+                  asked topics are:
+                  <strong
+                    style={{
+                      color: "#c9a84c",
+                      display: "block",
+                      marginTop: "0.5rem",
+                    }}
+                  >
                     1. Transfer Functions &amp; State Space Models (every year)
-                    <br />2. Root Locus &amp; Bode Plot (7-mark questions)
-                    <br />3. PID Controllers — design &amp; tuning
+                    <br />
+                    2. Root Locus &amp; Bode Plot (7-mark questions)
+                    <br />
+                    3. PID Controllers — design &amp; tuning
                   </strong>
-                  <span style={{ color: '#7a7a9a', fontSize: '0.85rem', display: 'block', marginTop: '0.5rem' }}>
+                  <span
+                    style={{
+                      color: "#7a7a9a",
+                      fontSize: "0.85rem",
+                      display: "block",
+                      marginTop: "0.5rem",
+                    }}
+                  >
                     📎 Source: Control Theory PYQ 2020–2025
                   </span>
                 </div>
@@ -579,10 +621,10 @@ export default function HomePage() {
       {/* Stats */}
       <div className="stats">
         {[
-          { num: '6+',   label: 'Engineering Branches' },
-          { num: '8',    label: 'Semesters Covered' },
-          { num: '100%', label: 'GTU Syllabus' },
-          { num: '24/7', label: 'Available' },
+          { num: "6+", label: "Engineering Branches" },
+          { num: "8", label: "Semesters Covered" },
+          { num: "100%", label: "GTU Syllabus" },
+          { num: "24/7", label: "Available" },
         ].map((s, i) => (
           <div key={i} className="stat">
             <div className="stat-num">{s.num}</div>
@@ -592,23 +634,56 @@ export default function HomePage() {
       </div>
 
       {/* Features */}
-      <section id="features" style={{ padding: '7rem 2rem' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div data-reveal="features" style={revealed('features')}>
+      <section id="features" style={{ padding: "7rem 2rem" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+          <div data-reveal="features" style={revealed("features")}>
             <div className="section-label">What you get</div>
-            <h2 className="section-title">Everything you need<br />to top your semester</h2>
+            <h2 className="section-title">
+              Everything you need
+              <br />
+              to top your semester
+            </h2>
             <p className="section-sub">
-              One platform for all your GTU exam preparation — from past papers to AI-generated mock tests.
+              One platform for all your GTU exam preparation — from past papers
+              to AI-generated mock tests.
             </p>
           </div>
-          <div className="features-grid" data-reveal="features-grid" style={revealed('features-grid', 0.2)}>
+          <div
+            className="features-grid"
+            data-reveal="features-grid"
+            style={revealed("features-grid", 0.2)}
+          >
             {[
-              { icon: '🎯', title: 'RAG-Powered Answers', desc: 'AI searches through your actual GTU study material, textbooks, and past papers to give context-aware answers — not generic responses.' },
-              { icon: '📝', title: 'Generate Question Papers', desc: 'Instantly create GTU-pattern mock papers with MCQs, short answers, and 7-mark questions. Ranker plan includes model answers.' },
-              { icon: '📚', title: 'GTU Resources Library', desc: 'Access PYQs, notes, reference books, and study material organized by branch, semester, and subject — all in one place.' },
-              { icon: '⚡', title: 'Instant AI Chat', desc: 'Ask anything — concept explanations, formula derivations, diagram descriptions, or exam strategies. Get answers in seconds.' },
-              { icon: '🏆', title: 'Smart Study Analysis', desc: 'AI analyzes past 5 years of GTU papers to identify high-frequency topics and predict what\'s likely to appear in your exam.' },
-              { icon: '🔒', title: 'Secure & Private', desc: 'Your study sessions are private. Email OTP verification, JWT sessions, and no data sharing with third parties.' },
+              {
+                icon: "🎯",
+                title: "RAG-Powered Answers",
+                desc: "AI searches through your actual GTU study material, textbooks, and past papers to give context-aware answers — not generic responses.",
+              },
+              {
+                icon: "📝",
+                title: "Generate Question Papers",
+                desc: "Instantly create GTU-pattern mock papers with MCQs, short answers, and 7-mark questions. Ranker plan includes model answers.",
+              },
+              {
+                icon: "📚",
+                title: "GTU Resources Library",
+                desc: "Access PYQs, notes, reference books, and study material organized by branch, semester, and subject — all in one place.",
+              },
+              {
+                icon: "⚡",
+                title: "Instant AI Chat",
+                desc: "Ask anything — concept explanations, formula derivations, diagram descriptions, or exam strategies. Get answers in seconds.",
+              },
+              {
+                icon: "🏆",
+                title: "Smart Study Analysis",
+                desc: "AI analyzes past 5 years of GTU papers to identify high-frequency topics and predict what's likely to appear in your exam.",
+              },
+              {
+                icon: "🔒",
+                title: "Secure & Private",
+                desc: "Your study sessions are private. Email OTP verification, JWT sessions, and no data sharing with third parties.",
+              },
             ].map((f, i) => (
               <div key={i} className="feature-card">
                 <div className="feature-icon">{f.icon}</div>
@@ -621,25 +696,70 @@ export default function HomePage() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" style={{ padding: '7rem 2rem', borderTop: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6rem', alignItems: 'start' }}>
-          <div data-reveal="steps" style={revealed('steps')}>
+      <section
+        id="how-it-works"
+        style={{ padding: "7rem 2rem", borderTop: "1px solid var(--border)" }}
+      >
+        <div
+          className="how-it-works-grid"
+          style={{
+            maxWidth: "1100px",
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "6rem",
+            alignItems: "start",
+          }}
+        >
+          <div data-reveal="steps" style={revealed("steps")}>
             <div className="section-label">How it works</div>
-            <h2 className="section-title">From signup to<br />top ranker in 3 steps</h2>
-            <p className="section-sub">No setup needed. Start asking questions about your GTU subjects immediately.</p>
+            <h2 className="section-title">
+              From signup to
+              <br />
+              top ranker in 3 steps
+            </h2>
+            <p className="section-sub">
+              No setup needed. Start asking questions about your GTU subjects
+              immediately.
+            </p>
 
-            <div className="branches" style={{ marginTop: '2.5rem' }}>
-              {['Computer Eng.', 'IT', 'Electronics', 'Mechanical', 'Civil', 'IC'].map(b => (
-                <span key={b} className="branch-tag">{b}</span>
+            <div className="branches" style={{ marginTop: "2.5rem" }}>
+              {[
+                "Computer Eng.",
+                "IT",
+                "Electronics",
+                "Mechanical",
+                "Civil",
+                "IC",
+              ].map((b) => (
+                <span key={b} className="branch-tag">
+                  {b}
+                </span>
               ))}
             </div>
           </div>
 
-          <div className="steps" data-reveal="steps-list" style={revealed('steps-list', 0.2)}>
+          <div
+            className="steps"
+            data-reveal="steps-list"
+            style={revealed("steps-list", 0.2)}
+          >
             {[
-              { n: '01', title: 'Sign up free', desc: 'Create your account with email OTP verification. No credit card required — start with 15 free messages.' },
-              { n: '02', title: 'Ask your question', desc: 'Type any question about your GTU subject. The AI searches through uploaded study material to give accurate, syllabus-aligned answers.' },
-              { n: '03', title: 'Ace your exams', desc: 'Use generated question papers to practice, identify weak topics, and study efficiently with AI-guided preparation.' },
+              {
+                n: "01",
+                title: "Sign up free",
+                desc: "Create your account with email OTP verification. No credit card required — start with 15 free messages.",
+              },
+              {
+                n: "02",
+                title: "Ask your question",
+                desc: "Type any question about your GTU subject. The AI searches through uploaded study material to give accurate, syllabus-aligned answers.",
+              },
+              {
+                n: "03",
+                title: "Ace your exams",
+                desc: "Use generated question papers to practice, identify weak topics, and study efficiently with AI-guided preparation.",
+              },
             ].map((s, i) => (
               <div key={i} className="step">
                 <div className="step-num">{s.n}</div>
@@ -654,23 +774,38 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="cta-section" data-reveal="cta" style={revealed('cta')}>
+      <section
+        className="cta-section"
+        data-reveal="cta"
+        style={revealed("cta")}
+      >
         <div className="cta-glow" />
         <p className="section-label">Ready to start?</p>
         <h2 className="cta-title">
-          Your GTU rank<br />
-          <span style={{
-            background: 'linear-gradient(135deg, #c9a84c, #f0c060)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>starts here.</span>
+          Your GTU rank
+          <br />
+          <span
+            style={{
+              background: "linear-gradient(135deg, #c9a84c, #f0c060)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            starts here.
+          </span>
         </h2>
         <p className="cta-sub">
-          Join students already using GTU AI to study smarter.<br />
+          Join students already using GTU AI to study smarter.
+          <br />
           First 15 messages are completely free.
         </p>
         <div className="cta-actions">
-          <Link href={session ? '/chat' : '/signup'} className="btn-primary" style={{ fontSize: '1.0625rem', padding: '1.125rem 3rem' }}>
-            ⚡ {session ? 'Continue Studying' : 'Start for Free'}
+          <Link
+            href={session ? "/chat" : "/signup"}
+            className="btn-primary"
+            style={{ fontSize: "1.0625rem", padding: "1.125rem 3rem" }}
+          >
+            ⚡ {session ? "Continue Studying" : "Start for Free"}
           </Link>
           <Link href="/pricing" className="btn-secondary">
             View pricing →
@@ -681,14 +816,22 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="footer">
         <div className="footer-logo">GTU AI ⚡</div>
-        <div style={{ fontSize: '0.8125rem' }}>
+        <div style={{ fontSize: "0.8125rem" }}>
           Made for GTU students · Not affiliated with GTU officially
         </div>
         <div className="footer-links">
-          <Link href="/pricing"   className="footer-link">Pricing</Link>
-          <Link href="/chat"      className="footer-link">Chat</Link>
-          <Link href="/gtu"       className="footer-link">Resources</Link>
-          <Link href="/signin"    className="footer-link">Sign In</Link>
+          <Link href="/pricing" className="footer-link">
+            Pricing
+          </Link>
+          <Link href="/chat" className="footer-link">
+            Chat
+          </Link>
+          <Link href="/gtu" className="footer-link">
+            Resources
+          </Link>
+          <Link href="/signin" className="footer-link">
+            Sign In
+          </Link>
         </div>
       </footer>
     </>

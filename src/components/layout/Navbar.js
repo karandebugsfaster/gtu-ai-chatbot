@@ -7,7 +7,7 @@ import Link from "next/link";
 import SubscriptionBadge from "../SubscriptionBadge";
 
 export default function Navbar({ onMenuClick }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const [showDropdown, setShowDropdown] = useState(false);
