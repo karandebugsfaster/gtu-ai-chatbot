@@ -1,4 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import { getServerSession } from "next-auth";           // ✅ ADD
+import { authOptions } from "@/lib/auth/authOptions";   // ✅ ADD
 import Providers from "./providers";
 import "./globals.css";
 
@@ -17,14 +19,14 @@ export const metadata = {
   description: "This is a AI chatbot specially made for GTU students to help them in their studies",
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {   // ✅ async
+  const session = await getServerSession(authOptions);     // ✅ fetch session
+
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers session={session}>
-        {children}
+          {children}
         </Providers>
       </body>
     </html>
