@@ -1,28 +1,28 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const GeneratedQuestionSchema = new mongoose.Schema({
   questionNumber: String,
   questionText: {
     type: String,
-    required: true
+    required: true,
   },
   marks: {
     type: Number,
-    required: true
+    required: true,
   },
   unit: String,
   topic: String,
   difficulty: String,
   source: {
     type: String,
-    enum: ['pyq', 'ai-generated'],
-    default: 'pyq'
+    enum: ["pyq", "ai-generated"],
+    default: "pyq",
   },
   sourcePYQ: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'PYQ'
+    ref: "PYQ",
   },
-  alternatives: [String] // For OR questions
+  alternatives: [String], // For OR questions
 });
 
 const SectionSchema = new mongoose.Schema({
@@ -30,92 +30,103 @@ const SectionSchema = new mongoose.Schema({
   type: String,
   instructions: String,
   totalMarks: Number,
-  questions: [GeneratedQuestionSchema]
+  questions: [GeneratedQuestionSchema],
 });
 
-const GeneratedQPSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true
-  },
-  subject: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Subject',
-    required: true
-  },
-  branch: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Branch',
-    required: true
-  },
-  semester: {
-    type: Number,
-    required: true
-  },
-  generationType: {
-    type: String,
-    enum: ['pattern-based', 'topic-based', 'difficulty-based', 'custom'],
-    default: 'pattern-based'
-  },
-  config: {
-    totalMarks: Number,
-    duration: String,
-    questionDistribution: {
-      easy: Number,
-      medium: Number,
-      hard: Number
+const GeneratedQPSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: true,
     },
-    unitWeightage: {
-      type: Map,
-      of: Number
-    }
-  },
-  sections: [SectionSchema],
-  analysisUsed: {
-    pyqsAnalyzed: [{
+    subject: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'PYQ'
-    }],
-    yearRange: {
-      start: String,
-      end: String
+      ref: "Subject",
+      // required: true
     },
-    patternDetected: String,
-    confidenceScore: Number
-  },
-  pdfFile: {
-    fileName: String,
-    filePath: String,
-    generatedAt: Date
-  },
-  generatedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  },
-  downloads: {
-    type: Number,
-    default: 0
-  },
-  rating: {
-    average: {
-      type: Number,
-      default: 0
+    branch: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      // required: true
     },
-    count: {
+    semester: {
       type: Number,
-      default: 0
-    }
+      required: true,
+    },
+    generationType: {
+      type: String,
+      enum: ["pattern-based", "topic-based", "difficulty-based", "custom"],
+      default: "pattern-based",
+    },
+    rawContent: {
+      // ✅ ADD HERE
+      type: String,
+      default: null,
+    },
+    config: {
+      totalMarks: Number,
+      duration: String,
+      questionDistribution: {
+        easy: Number,
+        medium: Number,
+        hard: Number,
+      },
+      unitWeightage: {
+        type: Map,
+        of: Number,
+      },
+    },
+    sections: [SectionSchema],
+    analysisUsed: {
+      pyqsAnalyzed: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "PYQ",
+        },
+      ],
+      yearRange: {
+        start: String,
+        end: String,
+      },
+      patternDetected: String,
+      confidenceScore: Number,
+    },
+    pdfFile: {
+      fileName: String,
+      filePath: String,
+      generatedAt: Date,
+    },
+    generatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    downloads: {
+      type: Number,
+      default: 0,
+    },
+    rating: {
+      average: {
+        type: Number,
+        default: 0,
+      },
+      count: {
+        type: Number,
+        default: 0,
+      },
+    },
+    isPublic: {
+      type: Boolean,
+      default: false,
+    },
   },
-  isPublic: {
-    type: Boolean,
-    default: false
-  }
-}, {
-  timestamps: true
-});
+  {
+    timestamps: true,
+  },
+);
 
 GeneratedQPSchema.index({ subject: 1, createdAt: -1 });
 GeneratedQPSchema.index({ generatedBy: 1 });
 GeneratedQPSchema.index({ branch: 1, semester: 1 });
 
-export default mongoose.models.GeneratedQP || mongoose.model('GeneratedQP', GeneratedQPSchema);
+export default mongoose.models.GeneratedQP ||
+  mongoose.model("GeneratedQP", GeneratedQPSchema);

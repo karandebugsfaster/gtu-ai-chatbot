@@ -108,6 +108,9 @@ function ChatContent() {
           },
         };
         setMessages((prev) => [...prev, assistantMessage]);
+
+        // ✅ Tell SubscriptionBadge to refresh message count
+        window.dispatchEvent(new Event("gtu:message-sent"));
       } else {
         toast.error(data.error || "Failed to send message");
       }

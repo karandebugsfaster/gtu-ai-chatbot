@@ -235,7 +235,7 @@ export default function QPGPage() {
       }
 
       if (data.success) {
-        setGeneratedPaper(data.paper);
+        setGeneratedPaper(data.questionPaper);
         setStep(4);
         toast.success('Question paper generated!');
       } else {
@@ -663,7 +663,7 @@ export default function QPGPage() {
       </p>
       <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
         <button
-          onClick={() => window.open(`/api/qpg/download/${generatedPaper?.id}`, '_blank')}
+          onClick={() => window.open(`/api/qpg/download/${generatedPaper?._id}`, '_blank')}
           style={{
             padding: '0.875rem 2rem',
             background: 'linear-gradient(135deg, #6366f1 0%, #9333ea 100%)',

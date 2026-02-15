@@ -19,7 +19,7 @@ export default function PricingPage() {
     if (!session) return;
     fetch('/api/subscription/status')
       .then(r => r.json())
-      .then(d => { if (d.success) setCurrentPlan(d.subscription?.plan || 'free'); })
+      .then(d => { if (d.success) setCurrentPlan(d.plan || 'free'); })
       .catch(() => {});
   }, [session]);
 
@@ -40,7 +40,7 @@ export default function PricingPage() {
       const res  = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: plan.id }),
+        body: JSON.stringify({ planId: plan.id }),
       });
       const data = await res.json();
 
@@ -49,45 +49,41 @@ export default function PricingPage() {
         return;
       }
 
-      const options = {
-        key:         process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount:      data.order.amount,
-        currency:    'INR',
-        name:        'GTU-AI',
-        description: `${plan.name} — Monthly`,
-        order_id:    data.order.id,
-        prefill: {
-          name:  session.user?.name  || '',
-          email: session.user?.email || '',
-        },
-        theme: { color: plan.color },
-        handler: async (response) => {
-          const verifyRes  = await fetch('/api/payment/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              razorpay_order_id:   response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature:  response.razorpay_signature,
-              plan: plan.id,
-            }),
-          });
-          const verifyData = await verifyRes.json();
+const options = {
+  key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+  amount: data.amount,
+  currency: 'INR',
+  name: 'GTU-AI',
+  description: `${plan.name} — Monthly`,
+  order_id: data.orderId,
+  prefill: {
+    name: session.user?.name || '',
+    email: session.user?.email || '',
+  },
+  theme: { color: plan.color },
+  handler: async (response) => {
+    const verifyRes = await fetch('/api/payment/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature,
+        planId: plan.id,
+      }),
+    });
 
-          if (verifyData.success) {
-            toast.success(`🎉 Welcome to ${plan.name}!`);
-            setCurrentPlan(plan.id);
-          } else {
-            toast.error('Payment verification failed. Contact support.');
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setLoading(false);
-            setProcessingPlan(null);
-          },
-        },
-      };
+    const verifyData = await verifyRes.json();
+
+    if (verifyData.success) {
+      toast.success(`🎉 Welcome to ${plan.name}!`);
+      setCurrentPlan(plan.id);
+    } else {
+      toast.error('Payment verification failed.');
+    }
+  },
+};
+
 
       const rzp = new window.Razorpay(options);
       rzp.open();

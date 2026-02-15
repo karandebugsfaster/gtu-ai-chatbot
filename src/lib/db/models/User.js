@@ -202,6 +202,20 @@ const UserSchema = new mongoose.Schema(
       },
     },
 
+    subscription: {
+      plan: { type: String, default: "free" },
+      status: {
+        type: String,
+        enum: ["active", "expired", "cancelled"],
+        default: "active",
+      },
+      startDate: { type: Date },
+      endDate: { type: Date },
+      paymentId: { type: String },
+      orderId: { type: String },
+    },
+    messagesUsed: { type: Number, default: 0 },
+
     lastLogin: Date,
 
     resetPasswordToken: String,

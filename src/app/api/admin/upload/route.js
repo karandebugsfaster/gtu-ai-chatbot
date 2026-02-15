@@ -6,7 +6,9 @@ import connectDB from '@/lib/db/mongodb';
 import Document from '@/lib/db/models/Document';
 import { uploadPDFToCloudinary } from '@/lib/cloudinary';
 
-export const config = { api: { bodyParser: false } };
+// export const config = { api: { bodyParser: false } };
+// ✅ Next.js 14+ way
+export const runtime = 'nodejs';
 
 export async function POST(request) {
   try {
