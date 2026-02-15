@@ -275,7 +275,7 @@ export default function Navbar({ onMenuClick }) {
 
                       {session.user.role === 'admin' && (
                         <Link
-                          href="/admin"
+                          href="/admin/dashboard"
                           style={{
                             display: 'flex',
                             alignItems: 'center',
