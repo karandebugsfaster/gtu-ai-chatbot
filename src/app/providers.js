@@ -4,7 +4,7 @@
 
 // export default function Providers({ children, session }) {
 //   return (
-//     <SessionProvider 
+//     <SessionProvider
 //       session={session}
 //       refetchOnWindowFocus={true}
 //       refetchInterval={30}
@@ -13,12 +13,12 @@
 //     </SessionProvider>
 //   );
 // }
-'use client';
-import { SessionProvider } from 'next-auth/react';
+"use client";
+import { SessionProvider } from "next-auth/react";
 
-export default function Providers({ children }) {
+export default function Providers({ children, session }) {
   return (
-    <SessionProvider refetchOnWindowFocus={true}>
+    <SessionProvider session={session} refetchOnWindowFocus={true}>
       {children}
     </SessionProvider>
   );

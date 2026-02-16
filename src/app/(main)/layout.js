@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { SessionProvider } from "next-auth/react";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import { Toaster } from "react-hot-toast";
@@ -10,26 +9,25 @@ export default function MainLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <SessionProvider>
-      <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-        {/* Sidebar */}
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+      {/* Sidebar */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        {/* Main Content */}
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            // alignContent: "stretch",
-            flexDirection: "column",
-            overflow: "hidden",
-            marginLeft: 0,
-            minWidth: 0, // prevent flex blowout
-          }}
-          className="main-content"
-        >
-          {/* Navbar */}
-          <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+      {/* Main Content */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          // alignContent: "stretch",
+          flexDirection: "column",
+          overflow: "hidden",
+          marginLeft: 0,
+          minWidth: 0, // prevent flex blowout
+        }}
+        className="main-content"
+      >
+        {/* Navbar */}
+        <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
 
           {/* Page Content */}
           <main
@@ -79,6 +77,6 @@ export default function MainLayout({ children }) {
           }
         }
       `}</style> */}
-    </SessionProvider>
+    </div>
   );
 }
