@@ -127,6 +127,23 @@ useEffect(() => {
     }
   };
 
+  
+// ✅ ADD THIS — don't render until session is confirmed
+if (status === 'loading') {
+  return (
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      height: '100%',
+      color: '#6b7280'
+    }}>
+      <div>Loading...</div>
+    </div>
+  );
+}
+
+
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Messages Area */}

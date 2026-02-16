@@ -16,6 +16,11 @@ const handleSignOut = async () => {
   await signOut({ callbackUrl: "/signin" });
 };
 
+// ✅ Don't show anything until session is known
+if (status === 'loading') {
+  return <div style={{ width: '80px', height: '32px' }} />; // placeholder
+}
+
   return (
     <nav
       style={{
