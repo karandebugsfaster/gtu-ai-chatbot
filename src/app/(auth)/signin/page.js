@@ -63,11 +63,10 @@ export default function SignInPage() {
 
       toast.success("Welcome back!");
 
-      // Wait a bit to ensure session is established, then redirect
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      router.refresh();
-      await new Promise((r) => setTimeout(r, 100));
-      router.push("/chat");
+  // ✅ FIX — push first, then refresh on the new page
+router.push("/chat");
+await new Promise((r) => setTimeout(r, 300));
+router.refresh();
     } catch (error) {
       console.error("Signin error:", error);
       toast.error(error.message || "Something went wrong. Please try again.");

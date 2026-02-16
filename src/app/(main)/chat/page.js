@@ -9,7 +9,7 @@ import WelcomeScreen from "@/components/chat/WelcomeScreen";
 import toast from "react-hot-toast";
 
 function ChatContent() {
-  const { data: session } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session");
@@ -25,6 +25,11 @@ function ChatContent() {
       loadChatHistory(sessionId);
     }
   }, [sessionId, session]);
+
+  // Add this useEffect
+useEffect(() => {
+  update(); // ✅ forces session refetch when chat page loads
+}, []);
 
   useEffect(() => {
     scrollToBottom();
