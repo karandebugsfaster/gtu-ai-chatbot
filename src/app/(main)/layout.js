@@ -18,29 +18,28 @@ export default function MainLayout({ children }) {
         style={{
           flex: 1,
           display: "flex",
-          // alignContent: "stretch",
           flexDirection: "column",
           overflow: "hidden",
           marginLeft: 0,
-          minWidth: 0, // prevent flex blowout
+          minWidth: 0,
         }}
         className="main-content"
       >
         {/* Navbar */}
         <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
 
-          {/* Page Content */}
-          <main
-            style={{
-              flex: 1,
-              overflow: "auto",
-              background: "#ffffff",
-            }}
-          >
-            {children}
-          </main>
-        </div>
+        {/* Page Content */}
+        <main
+          style={{
+            flex: 1,
+            overflow: "auto",
+            background: "#ffffff",
+          }}
+        >
+          {children}
+        </main>
 
+        {/* Toast Notifications */}
         <Toaster
           position="top-right"
           toastOptions={{
@@ -69,14 +68,6 @@ export default function MainLayout({ children }) {
           }}
         />
       </div>
-
-      {/* <style jsx global>{`
-        @media (min-width: 768px) {
-          .main-content {
-            margin-left: 16rem !important;
-          }
-        }
-      `}</style> */}
     </div>
   );
 }
