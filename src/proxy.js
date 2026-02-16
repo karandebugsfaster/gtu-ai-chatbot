@@ -27,9 +27,9 @@ export async function proxy(request) {
   }
 
   // Already logged in → skip auth pages
-  if ((pathname === '/signin' || pathname === '/signup') && token) {
-    return NextResponse.redirect(new URL('/chat', request.url));
-  }
+  // if ((pathname === '/signin' || pathname === '/signup') && token) {
+  //   return NextResponse.redirect(new URL('/chat', request.url));
+  // }
 
   return NextResponse.next();
 }
@@ -37,8 +37,8 @@ export async function proxy(request) {
 export const config = {
   matcher: [
     '/admin/:path*',
-    '/signin',
-    '/signup',
+    // '/signin',
+    // '/signup',
   ],
   // ✅ Explicitly NO /api routes in matcher
 };

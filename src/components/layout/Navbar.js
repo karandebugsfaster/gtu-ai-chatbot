@@ -138,7 +138,7 @@ const handleSignOut = async () => {
           {session ? (
             <>
               {/* New Chat Button */}
-              <button
+              {/* <button
                 onClick={() => router.push("/chat")}
                 style={{
                   display: "none",
@@ -180,7 +180,7 @@ const handleSignOut = async () => {
                   />
                 </svg>
                 New Chat
-              </button>
+              </button> */}
 
               <SubscriptionBadge />
 

@@ -87,8 +87,8 @@ export default function AdminDocumentsPage() {
         toast.error('Only PDF files are allowed');
         return;
       }
-      if (file.size > 50 * 1024 * 1024) {
-        toast.error('File size must be less than 50MB');
+      if (file.size > 100 * 1024 * 1024) {
+        toast.error('File size must be less than 100MB');
         return;
       }
       setSelectedFile(file);
