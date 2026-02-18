@@ -89,7 +89,7 @@ if (status === 'loading') {
 
           {/* Logo */}
           <Link
-            href="/chat"
+            href="/"
             style={{
               display: "flex",
               alignItems: "center",
