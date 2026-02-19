@@ -76,3 +76,5 @@ export default async function RootLayout({ children }) {
     </html>
   );
 }
+
+//something was broken, Let's hope it gets fixed by this commit.
