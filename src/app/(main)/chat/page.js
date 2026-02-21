@@ -1,3 +1,4 @@
+// This is main chat page.js
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
@@ -16,6 +17,13 @@ function ChatContent() {
 
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+    const [uploadedFile, setUploadedFile] = useState(() => {
+    if (typeof window !== 'undefined' && sessionId) {
+      const saved = localStorage.getItem(`uploadedFile_${sessionId}`);
+      return saved ? JSON.parse(saved) : null;
+    }
+    return null;
+  });
   const [currentSessionId, setCurrentSessionId] = useState(sessionId);
   const messagesEndRef = useRef(null);
   const scrollAreaRef = useRef(null);
@@ -29,6 +37,12 @@ function ChatContent() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+    // ✅ Save uploadedFile to localStorage whenever it changes
+  useEffect(() => {
+    if (sessionId && uploadedFile) {
+      localStorage.setItem(`uploadedFile_${sessionId}`, JSON.stringify(uploadedFile));
+    }
+  }, [uploadedFile, sessionId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -45,6 +59,86 @@ function ChatContent() {
       }
     } catch (error) {
       console.error("Error loading chat history:", error);
+    }
+  };
+
+  //  // ✅ ADD: Handle file upload
+  // const handleFileUpload = async (file) => {
+  //   try {
+  //     const formData = new FormData();
+  //     formData.append('file', file);
+  //     formData.append('sessionId', currentSessionId);
+
+  //     const response = await fetch('/api/chat/upload', {
+  //       method: 'POST',
+  //       body: formData,
+  //     });
+
+  //     const data = await response.json();
+
+  //     if (data.success) {
+  //       setUploadedFile({
+  //         fileName: data.fileName,
+  //         documentId: data.documentId,
+  //         stats: data.stats,
+  //       });
+
+  //       // Show success message
+  //       alert(`PDF uploaded successfully! ${data.stats.savedChunks} chunks created. You can now ask questions from this document.`);
+  //     } else {
+  //       throw new Error(data.error || 'Upload failed');
+  //     }
+  //   } catch (error) {
+  //     console.error('Upload error:', error);
+  //     throw error;
+  //   }
+  // };
+
+  // In ChatContent (page.js) - Update handleFileUpload
+const handleFileUpload = async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("sessionId", currentSessionId);
+
+      const uploadResponse = await fetch("/api/chat/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const uploadData = await uploadResponse.json();
+
+      if (uploadData.success) {
+        // ✅ Set uploaded file immediately (will trigger localStorage save via useEffect)
+        const fileData = {
+          fileName: uploadData.fileName,
+          documentId: uploadData.documentId,
+          stats: uploadData.stats,
+        };
+        
+        setUploadedFile(fileData);
+        
+        toast.success(
+          `PDF uploaded! ${uploadData.stats.savedChunks} chunks + ${uploadData.stats.diagramCount || 0} diagrams extracted.`
+        );
+      } else {
+        throw new Error(uploadData.error || "Upload failed");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error(error.message);
+      throw error;
+    }
+  };
+
+  // ✅ ADD: Remove uploaded file
+  // ✅ Clear uploadedFile from localStorage when removed
+  const handleRemoveFile = async () => {
+    if (confirm('Remove uploaded document? You will switch back to general questions.')) {
+      setUploadedFile(null);
+      if (sessionId) {
+        localStorage.removeItem(`uploadedFile_${sessionId}`);
+      }
     }
   };
 
@@ -97,16 +191,17 @@ function ChatContent() {
 
       const data = await response.json();
 
-      if (data.success) {
-        const assistantMessage = {
-          role: "assistant",
-          content: data.response,
-          timestamp: new Date(),
-          metadata: {
-            sources: data.sources || [],
-            hasContext: data.metadata?.hasContext || false,
-          },
-        };
+    if (data.success) {
+  const assistantMessage = {
+    role: "assistant",
+    content: data.response,
+    timestamp: new Date(),
+    metadata: {
+      sources: data.sources || [],
+      hasContext: data.metadata?.hasContext || false,
+      diagrams: data.diagrams || [],   // ✅ ADD THIS
+    },
+  };
         setMessages((prev) => [...prev, assistantMessage]);
 
         // ✅ Tell SubscriptionBadge to refresh message count
@@ -198,9 +293,17 @@ function ChatContent() {
           </div>
         )}
       </div>
+      
 
       {/* Input Box */}
-      <ChatInput onSendMessage={handleSendMessage} disabled={loading} />
+      {/* <ChatInput onSendMessage={handleSendMessage} disabled={loading} /> */}
+      <ChatInput
+        onSendMessage={handleSendMessage}
+        onFileUpload={handleFileUpload}
+        onRemoveFile={handleRemoveFile}
+        uploadedFileName={uploadedFile?.fileName}
+        disabled={loading} // ✅ Use 'loading' which is defined at line 15
+      />
     </div>
   );
 }

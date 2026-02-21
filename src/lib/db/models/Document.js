@@ -3,12 +3,16 @@ import mongoose from 'mongoose';
 
 const documentSchema = new mongoose.Schema({
   title:        { type: String, required: true, trim: true },
-  type:         { type: String, enum: ['notes', 'book', 'reference', 'pyq'], default: 'notes' },
+  type:         { type: String, enum: ['notes', 'book', 'reference', 'pyq', 'user-upload'], default: 'notes' },
   branch:       { type: String, required: true, index: true },
   semester:     { type: Number, required: true, index: true },
   subject:      { type: String, required: true, index: true },
   academicYear: { type: String, default: '2024-25' },
   author:       { type: String, default: '' },
+    // ✅ ADD THESE for user uploads
+  uploadedByUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  isUserUpload: { type: Boolean, default: false },
+  sessionId: { type: String, index: true }, // Link to specific chat session
 
   // ✅ Cloudinary storage — replaces base64 fileData
   fileUrl:      { type: String, default: '' },    // Cloudinary secure URL
